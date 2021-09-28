@@ -1,0 +1,175 @@
+package io.codemc.bot.commands;
+
+import ch.qos.logback.classic.Logger;
+import com.jagrosh.jdautilities.command.SlashCommand;
+import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.utils.Constants;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
+import okhttp3.HttpUrl;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
+
+public class CmdSubmit extends SlashCommand{
+    
+    private final Logger LOG = (Logger)LoggerFactory.getLogger(CmdSubmit.class);
+    
+    private final CodeMCBot bot;
+    
+    public CmdSubmit(CodeMCBot bot){
+        this.bot = bot;
+        
+        this.name = "submit";
+        this.help = "Send a Access Request for the CodeMC CI.";
+        
+        this.options = Arrays.asList(
+            new OptionData(OptionType.STRING, "user", "Username or Link to profile.").setRequired(true),
+            new OptionData(OptionType.STRING, "repository", "Link to the Repository").setRequired(true)
+        );
+    }
+    
+    @Override
+    protected void execute(SlashCommandEvent event){
+        String username = bot.getCommandUtil().getString(event, "user");
+        String repository = bot.getCommandUtil().getString(event, "repository");
+        
+        if(username == null || repository == null){
+            bot.getCommandUtil().sendError(event, "Either Username or repository where null!");
+            return;
+        }
+    
+        Guild guild = event.getGuild();
+        if(guild == null){
+            bot.getCommandUtil().sendError(event, "Unable to retrieve Guild.");
+            return;
+        }
+        
+        event.deferReply().setEphemeral(true).queue(hook -> {
+            HttpUrl repoUrl = HttpUrl.parse(repository);
+            if(repoUrl == null || repoUrl.pathSegments().size() <= 1){
+                bot.getCommandUtil().sendError(hook, "The provided Repository URL (`" + repository + "`) was invalid!");
+                return;
+            }
+            
+            String finalRepoLink = getLink(repoUrl.pathSegments().get(0) + "/" + repoUrl.pathSegments().get(1), repoUrl.toString());
+            
+            HttpUrl userUrl = HttpUrl.parse(username);
+            String finalUserLink;
+            if(userUrl == null){
+                finalUserLink = getLink(username, null);
+            }else{
+                if(userUrl.pathSegments().size() <= 0){
+                    bot.getCommandUtil().sendError(hook, "User URL does not have a valid path!");
+                    return;
+                }
+                
+                finalUserLink = getLink(userUrl.pathSegments().get(0), userUrl.toString());
+            }
+    
+            MessageEmbed embed = new EmbedBuilder()
+                .setColor(0x0172BA)
+                .addField(
+                    "User/Organisation:",
+                    finalUserLink,
+                    true
+                ).addField(
+                    "Repository:",
+                    finalRepoLink,
+                    true
+                ).addField(
+                    "Submited by:",
+                    event.getUser().getAsTag(),
+                    false
+                ).setFooter(
+                    event.getUser().getId()
+                ).setTimestamp(
+                    Instant.now()
+                ).build();
+            
+            event.getUser().openPrivateChannel()
+                    .flatMap(channel -> channel.sendMessage(getConfirm(embed)))
+                    .queue(
+                        message -> handleButtons(message, event.getUser(), guild, embed, hook),
+                        e -> bot.getCommandUtil().sendError(hook, "Can't send a Private Message!")
+                    );
+        });
+    }
+    
+    private String getLink(String name, String url){
+        return String.format(
+            "[`%s`](%s)",
+            name,
+            url == null ? "https://github.com/" + name : url
+        );
+    }
+    
+    private Message getConfirm(MessageEmbed embed){
+        return new MessageBuilder(
+            "Are you sure you want to submit the following information to the `#request-access` channel?\n" +
+            "\n" +
+            "> **This interaction will timeout in 1 Minute!**"
+        ).setEmbeds(embed)
+        .setActionRows(ActionRow.of(
+            Button.success("confirm", "Confirm"),
+            Button.danger("cancel", "Cancel")
+        )).build();
+    }
+    
+    private void handleButtons(Message message, User user, Guild guild, MessageEmbed embed, InteractionHook hook){
+        bot.getEventWaiter().waitForEvent(
+            ButtonClickEvent.class,
+            event -> {
+                if(event.getUser().isBot())
+                    return false;
+                
+                if(!event.getComponentId().equals("confirm") && !event.getComponentId().equals("cancel"))
+                    return false;
+                
+                if(!event.isAcknowledged())
+                    event.deferEdit().queue();
+                
+                if(!event.getUser().equals(user))
+                    return false;
+                
+                return event.getMessageId().equals(message.getId());
+            },
+            event -> {
+                if(event.getComponentId().equals("cancel")){
+                    hook.editOriginal("Submission Cancelled! You can delete this message now.").queue();
+                    return;
+                }
+    
+                TextChannel apply = guild.getTextChannelById(Constants.REQUEST_ACCESS);
+                if(apply == null){
+                    bot.getCommandUtil().sendError(hook, "Unable to retrieve the request-access channel!");
+                    return;
+                }
+                
+                apply.sendMessageEmbeds(embed).queue(
+                    m -> hook.editOriginal("Submission send! You can delete this message now.").queue(
+                        null,
+                        e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
+                    ));
+            },
+            1, TimeUnit.MINUTES,
+            () -> {
+                message.editMessage("Interaction Timed out!").override(true).queue();
+                hook.editOriginal("Interaction Timed out!").queue(
+                    null,
+                    e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
+                );
+            }
+        );
+    }
+}

@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'idea'
+}
+
+group 'io.codemc'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://jitpack.io' }
+    maven { url = 'https://repo.codemc.io/repository/maven-public' }
+    maven { url = 'https://m2.dv8tion.net/releases' }
+    maven { url = 'https://m2.chew.pro/releases' }
+}
+
+dependencies {
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.5'
+
+    implementation(group: 'net.dv8tion', name: 'JDA', version:'4.3.0_324'){
+        exclude(module: 'opus-java')
+    }
+
+    implementation group: 'pw.chew', name: 'jda-chewtils-commons', version: '1.22.0'
+    implementation group: 'pw.chew', name: 'jda-chewtils-command', version: '1.22.0'
+}
+
+artifacts {
+    archives(shadowJar)
+}
+
+shadowJar {
+    archiveFileName = "CodeMC-Bot.jar"
+}
+
+application {
+    mainClassName = 'io.codemc.bot.CodeMCBot'
+}
