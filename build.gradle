@@ -37,7 +37,7 @@ repositories {
 dependencies {
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.5'
 
-    implementation(group: 'net.dv8tion', name: 'JDA', version:'4.3.0_324'){
+    implementation(group: 'net.dv8tion', name: 'JDA', version:'4.3.0_331'){
         exclude(module: 'opus-java')
     }
 

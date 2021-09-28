@@ -52,8 +52,21 @@ public class CmdSubmit extends SlashCommand{
         this.help = "Send a Access Request for the CodeMC CI.";
         
         this.options = Arrays.asList(
-            new OptionData(OptionType.STRING, "user", "Username or Link to profile.").setRequired(true),
-            new OptionData(OptionType.STRING, "repository", "Link to the Repository").setRequired(true)
+            new OptionData(
+                OptionType.STRING,
+                "user",
+                "Username or Link to profile."
+            ).setRequired(true),
+            new OptionData(
+                OptionType.STRING,
+                "repository",
+                "Link to the Repository"
+            ).setRequired(true),
+            new OptionData(
+                OptionType.STRING,
+                "description",
+                "A brief description of why you want to be added. NEWLINES NOT SUPPORTED!"
+            ).setRequired(true)
         );
     }
     
@@ -61,9 +74,10 @@ public class CmdSubmit extends SlashCommand{
     protected void execute(SlashCommandEvent event){
         String username = bot.getCommandUtil().getString(event, "user");
         String repository = bot.getCommandUtil().getString(event, "repository");
+        String description = bot.getCommandUtil().getString(event, "description");
         
-        if(username == null || repository == null){
-            bot.getCommandUtil().sendError(event, "Either Username or repository where null!");
+        if(username == null || repository == null || description == null){
+            bot.getCommandUtil().sendError(event, "Either Username, repository or description were null!");
             return;
         }
     
@@ -107,7 +121,11 @@ public class CmdSubmit extends SlashCommand{
                     true
                 ).addField(
                     "Submited by:",
-                    event.getUser().getAsTag(),
+                    "`" + event.getUser().getAsTag() + "`",
+                    true
+                ).addField(
+                    "Description",
+                    description,
                     false
                 ).setFooter(
                     event.getUser().getId()
@@ -134,9 +152,10 @@ public class CmdSubmit extends SlashCommand{
     
     private Message getConfirm(MessageEmbed embed){
         return new MessageBuilder(
-            "Are you sure you want to submit the following information to the `#request-access` channel?\n" +
+            "Please double-check that your provided information is correct and confirm or cancel the submission.\n" +
+            "Due to a Discord limitations are line breaks NOT supported for Descriptions.\n" +
             "\n" +
-            "> **This interaction will timeout in 1 Minute!**"
+            "> **This request will time out in 1 Minute!**"
         ).setEmbeds(embed)
         .setActionRows(ActionRow.of(
             Button.success("confirm", "Confirm"),
@@ -174,11 +193,16 @@ public class CmdSubmit extends SlashCommand{
                     return;
                 }
                 
-                apply.sendMessageEmbeds(embed).queue(
-                    m -> hook.editOriginal("Submission send! You can delete this message now.").queue(
+                apply.sendMessageEmbeds(embed).queue(m -> {
+                    message.delete().queue(
+                        null,
+                        e -> LOG.warn("Could not delete own Message in DMs!")
+                    );
+                    hook.editOriginal("Submission completed! You can delete this message now.").queue(
                         null,
                         e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
-                    ));
+                    );
+                    });
             },
             1, TimeUnit.MINUTES,
             () -> {
