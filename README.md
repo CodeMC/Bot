@@ -1,7 +1,7 @@
 [discord]: https://discord.gg/AGcFMu6
 [codemc]: https://ci.codemc.io
 [docs]: https://docs.codemc.io
-[license]: https://github.com/CodeMC/Bot/blob/main/LICENSE
+[license]: https://github.com/CodeMC/Bot/blob/master/LICENSE
 
 # CodeMC Bot
 This is the code of the CodeMC Discord bot used on the [Discord Server][discord] of [CodeMC.io][codemc].
