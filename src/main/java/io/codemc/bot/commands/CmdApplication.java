@@ -150,7 +150,7 @@ public class CmdApplication extends SlashCommand{
                         )
                 );
             }, e -> bot.getCommandUtil().sendError(hook, "Unable to send message in channel."));
-        }, e -> bot.getCommandUtil().sendError(hook, "Unable to retrieve message."));
+        }, e -> bot.getCommandUtil().sendError(hook, "Unable to retrieve original submission."));
     }
     
     private static Message getMessage(String userId, String userLink, String repoLink, String reason){

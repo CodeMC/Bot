@@ -77,20 +77,32 @@ public class CmdSubmit extends SlashCommand{
         String description = bot.getCommandUtil().getString(event, "description");
         
         if(username == null || repository == null || description == null){
-            bot.getCommandUtil().sendError(event, "Either Username, repository or description were null!");
+            bot.getCommandUtil().sendError(event, "The provided username/link, repository-url and/or description were null!");
             return;
         }
     
         Guild guild = event.getGuild();
         if(guild == null){
-            bot.getCommandUtil().sendError(event, "Unable to retrieve Guild.");
+            bot.getCommandUtil().sendError(event, "Unable to retrieve Server.", "Make sure to execute this in a Server!");
             return;
         }
         
+        boolean cutDescription = false;
+        if(description.length() > MessageEmbed.VALUE_MAX_LENGTH){
+            description = description.substring(0, MessageEmbed.VALUE_MAX_LENGTH - 10) + "...";
+            cutDescription = true;
+        }
+        
+        final String desc = description;
+        final boolean cutDesc = cutDescription;
         event.deferReply().setEphemeral(true).queue(hook -> {
             HttpUrl repoUrl = HttpUrl.parse(repository);
             if(repoUrl == null || repoUrl.pathSegments().size() <= 1){
-                bot.getCommandUtil().sendError(hook, "The provided Repository URL (`" + repository + "`) was invalid!");
+                bot.getCommandUtil().sendError(
+                    hook,
+                    "The provided Repository URL (`" + repository + "`) was invalid!",
+                    "Make sure it follows the pattern `https://domain.tld/:user/:repository`"
+                );
                 return;
             }
             
@@ -102,7 +114,11 @@ public class CmdSubmit extends SlashCommand{
                 finalUserLink = getLink(username, null);
             }else{
                 if(userUrl.pathSegments().size() <= 0){
-                    bot.getCommandUtil().sendError(hook, "User URL does not have a valid path!");
+                    bot.getCommandUtil().sendError(
+                        hook,
+                        "User URL does not have a valid format!\n" +
+                        "Make sure it follows the pattern `https://domain.tld/:user`"
+                    );
                     return;
                 }
                 
@@ -125,7 +141,7 @@ public class CmdSubmit extends SlashCommand{
                     true
                 ).addField(
                     "Description",
-                    description,
+                    desc,
                     false
                 ).setFooter(
                     event.getUser().getId()
@@ -134,7 +150,7 @@ public class CmdSubmit extends SlashCommand{
                 ).build();
             
             event.getUser().openPrivateChannel()
-                    .flatMap(channel -> channel.sendMessage(getConfirm(embed)))
+                    .flatMap(channel -> channel.sendMessage(getConfirm(embed, cutDesc)))
                     .queue(
                         message -> handleButtons(message, event.getUser(), guild, embed, hook),
                         e -> bot.getCommandUtil().sendError(hook, "Can't send a Private Message!")
@@ -150,17 +166,29 @@ public class CmdSubmit extends SlashCommand{
         );
     }
     
-    private Message getConfirm(MessageEmbed embed){
-        return new MessageBuilder(
-            "Please double-check that your provided information is correct and confirm or cancel the submission.\n" +
-            "Due to a Discord limitations are line breaks NOT supported for Descriptions.\n" +
-            "\n" +
-            "> **This request will time out in 1 Minute!**"
-        ).setEmbeds(embed)
-        .setActionRows(ActionRow.of(
-            Button.success("confirm", "Confirm"),
-            Button.danger("cancel", "Cancel")
-        )).build();
+    private Message getConfirm(MessageEmbed embed, boolean cutDescription){
+        MessageBuilder builder = new MessageBuilder();
+        
+        builder.append("Below is the request you want to submit.")
+            .append("\n")
+            .append("Make sure it is correct. If it is, click the `Confirm` button, otherwise click `Cancel` instead.");
+        
+        if(cutDescription){
+            builder.append("\n")
+                .append("\n")
+                .append("*Your description was longer than " + MessageEmbed.VALUE_MAX_LENGTH + " characters and has been truncated!*");
+        }
+        
+        builder.append("\n")
+            .append("\n")
+            .append("> **This request will time out in 2 Minutes!**")
+            .setEmbeds(embed)
+            .setActionRows(ActionRow.of(
+                Button.success("confirm", "Confirm"),
+                Button.danger("cancel", "Cancel")
+            ));
+        
+        return builder.build();
     }
     
     private void handleButtons(Message message, User user, Guild guild, MessageEmbed embed, InteractionHook hook){
@@ -183,30 +211,52 @@ public class CmdSubmit extends SlashCommand{
             },
             event -> {
                 if(event.getComponentId().equals("cancel")){
-                    hook.editOriginal("Submission Cancelled! You can delete this message now.").queue();
+                    hook.editOriginal("Submission Cancelled! You can delete this message now.").queue(
+                        m -> message.editMessage(
+                            "Submission cancelled! You can close the DMs now."
+                        ).override(true).queue(
+                            null,
+                            e -> LOG.warn("Unable to edit own message in User DMs.")
+                        )
+                    );
                     return;
                 }
     
                 TextChannel apply = guild.getTextChannelById(Constants.REQUEST_ACCESS);
                 if(apply == null){
                     bot.getCommandUtil().sendError(hook, "Unable to retrieve the request-access channel!");
+                    
+                    message.editMessage(
+                        "There was an issue while processing your request.\n" +
+                        "Please check the command-response of the bot for further information!"
+                    ).override(true).queue(
+                        null,
+                        e -> LOG.warn("Unable to edit own message in User DMs.")
+                    );
                     return;
                 }
                 
                 apply.sendMessageEmbeds(embed).queue(m -> {
-                    message.delete().queue(
+                    message.editMessage(
+                        "Submission completed! You can close the DMs now."
+                    ).queue(
                         null,
-                        e -> LOG.warn("Could not delete own Message in DMs!")
+                        e -> LOG.warn("Unable to edit own message in User DMs.")
                     );
+                    
                     hook.editOriginal("Submission completed! You can delete this message now.").queue(
                         null,
                         e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
                     );
-                    });
+                });
             },
             1, TimeUnit.MINUTES,
             () -> {
-                message.editMessage("Interaction Timed out!").override(true).queue();
+                message.editMessage("Interaction Timed out!").override(true).queue(
+                    null,
+                    e -> LOG.warn("Unable to edit own message in User DMs.")
+                );
+                
                 hook.editOriginal("Interaction Timed out!").queue(
                     null,
                     e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
