@@ -23,14 +23,16 @@ import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 public class CmdMsg extends SlashCommand{
     
@@ -56,13 +58,14 @@ public class CmdMsg extends SlashCommand{
     // Method to handle the command types and reduce duplicate code.
     private static void handleCommand(SlashCommandEvent event, boolean isEdit, CodeMCBot bot){
         boolean isEmbed = bot.getCommandUtil().getBoolean(event, "embed", false);
-        TextChannel channel = bot.getCommandUtil().getChannel(event, "channel");
-        String message = bot.getCommandUtil().getString(event, "message");
+        
+        TextChannel currentChannel = event.getTextChannel();
+        TextChannel targetChannel = bot.getCommandUtil().getChannel(event, "channel");
         
         String messageId = bot.getCommandUtil().getString(event, "message-id");
         
-        if(channel == null || message == null){
-            bot.getCommandUtil().sendError(event, "The provided channel or message were null!");
+        if(targetChannel == null){
+            bot.getCommandUtil().sendError(event, "The provided channel was null!");
             return;
         }
         
@@ -71,46 +74,76 @@ public class CmdMsg extends SlashCommand{
             return;
         }
     
-        Guild guild = channel.getGuild();
-        if(!guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_WRITE)){
+        Guild guild = targetChannel.getGuild();
+        if(!guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_WRITE)){
             bot.getCommandUtil().sendError(event, "I lack the `Send Message` Permission for the selected channel!");
             return;
         }
         
-        if(!guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_HISTORY)){
+        if(!guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_HISTORY)){
             bot.getCommandUtil().sendError(event, "I lack the `View Channel History` Permission for the selected channel!");
             return;
         }
-    
-        MessageBuilder builder = new MessageBuilder();
-        if(isEmbed){
-            if(!guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_EMBED_LINKS)){
-                bot.getCommandUtil().sendError(event, "I lack the `Embed Links` Permission for the selected channel!");
-                return;
-            }
-            
-            builder.setEmbeds(
-                bot.getCommandUtil().getEmbed()
-                    .setDescription(message.replace("{n}", "\n"))
-                    .build()
-            );
-        }else{
-            builder.append(message.replace("{n}", "\n"));
+        
+        if(isEmbed && !guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_EMBED_LINKS)){
+            bot.getCommandUtil().sendError(event, "I lack the `Embed Link` Permission for the selected channel!");
+            return;
         }
         
-        if(isEdit){
-            channel.retrieveMessageById(messageId)
-                .flatMap(msg -> msg.editMessage(builder.build()).override(true))
-                .queue(
-                    m -> event.reply("Successfully edited [message](" + m.getJumpUrl() + ")!").queue(),
-                    e -> event.reply("Unable to edit existing message! Is it even mine?").setEphemeral(true).queue()
-                );
-        }else{
-            channel.sendMessage(builder.build()).queue(
-                m -> event.reply("Successfully send [new message](" + m.getJumpUrl() + ")!").queue(),
-                e -> event.reply("Unable to send message in selected channel!").setEphemeral(true).queue()
-            );
-        }
+        event.reply(
+            "Please provide the message to use for the message.\n" +
+            "\n" +
+            "> **The request will time out in 5 minutes!**"
+        ).queue(hook -> handleResponse(hook, targetChannel, isEmbed, currentChannel.getId(), event.getUser().getId(), messageId, bot));
+    }
+    
+    private static void handleResponse(InteractionHook hook,  TextChannel targetChannel, boolean isEmbed, String currentChannelId,
+                                       String userId, String messageId, CodeMCBot bot){
+        bot.getEventWaiter().waitForEvent(
+            GuildMessageReceivedEvent.class,
+            event -> {
+    
+                User user = event.getAuthor();
+                if(!user.getId().equals(userId) || user.isBot())
+                    return false;
+                
+                Message message = event.getMessage();
+                if(message.getType() != MessageType.DEFAULT)
+                    return false;
+                
+                return event.getChannel().getId().equals(currentChannelId);
+            },
+            event -> {
+                String message = event.getMessage().getContentRaw();
+                
+                MessageBuilder builder = new MessageBuilder();
+                if(isEmbed){
+                    builder.setEmbeds(
+                        bot.getCommandUtil().getEmbed()
+                            .setDescription(message)
+                            .build()
+                    );
+                }else{
+                    builder.append(message);
+                }
+                
+                if(messageId != null){
+                    targetChannel.retrieveMessageById(messageId)
+                        .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()).override(true))
+                        .queue(
+                            m -> hook.editOriginal("Successfully [edited message](<" + m.getJumpUrl() + ">)!").queue(),
+                            e -> hook.editOriginal("Unable to edit original message! Is it even from me?").queue()
+                        );
+                }else{
+                    targetChannel.sendMessage(builder.build()).queue(
+                        m -> hook.editOriginal("Successfully send [new message](<" + m.getJumpUrl() + ">)!").queue(),
+                        e -> hook.editOriginal("Unable to send new message in target channel!").queue()
+                    );
+                }
+            },
+            5, TimeUnit.MINUTES,
+            () -> hook.editOriginal("You took too long and the timer ran out!").queue()
+        );
     }
     
     private static class Send extends SlashCommand{
@@ -134,9 +167,7 @@ public class CmdMsg extends SlashCommand{
                     .setRequired(true),
                 new OptionData(OptionType.CHANNEL, "channel", "The channel to send the message in.")
                     .setRequired(true)
-                    .setChannelTypes(ChannelType.TEXT),
-                new OptionData(OptionType.STRING, "message", "The message to send. Use {n} for new lines.")
-                    .setRequired(true)
+                    .setChannelTypes(ChannelType.TEXT)
             );
         }
         
@@ -168,9 +199,7 @@ public class CmdMsg extends SlashCommand{
                 new OptionData(OptionType.CHANNEL, "channel", "The channel to send the message in.")
                     .setRequired(true)
                     .setChannelTypes(ChannelType.TEXT),
-                new OptionData(OptionType.STRING, "message-id", "The ID of the message to edit.").setRequired(true),
-                new OptionData(OptionType.STRING, "message", "The message to send. Use {n} for new lines.")
-                    .setRequired(true)
+                new OptionData(OptionType.STRING, "message-id", "The ID of the message to edit.").setRequired(true)
             );
         }
         
