@@ -20,6 +20,7 @@ package io.codemc.bot.utils;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -36,6 +37,22 @@ public class CommandUtil{
         return mapping.getAsString();
     }
     
+    public boolean getBoolean(SlashCommandEvent event, String key, boolean def){
+        OptionMapping mapping = event.getOption(key);
+        if(mapping == null)
+            return def;
+        
+        return mapping.getAsBoolean();
+    }
+    
+    public TextChannel getChannel(SlashCommandEvent event, String key){
+        OptionMapping mapping = event.getOption(key);
+        if(mapping == null)
+            return null;
+        
+        return (TextChannel)mapping.getAsGuildChannel();
+    }
+    
     public void sendError(SlashCommandEvent event, String... reason){
         MessageEmbed embed = getErrorEmbed(String.join("\n", reason));
         
@@ -46,6 +63,10 @@ public class CommandUtil{
         MessageEmbed embed = getErrorEmbed(String.join("\n", reason));
         
         hook.editOriginalEmbeds(embed).queue();
+    }
+    
+    public EmbedBuilder getEmbed(){
+        return new EmbedBuilder().setColor(0x0172BA);
     }
     
     private MessageEmbed getErrorEmbed(String reason){

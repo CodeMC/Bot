@@ -125,8 +125,7 @@ public class CmdSubmit extends SlashCommand{
                 finalUserLink = getLink(userUrl.pathSegments().get(0), userUrl.toString());
             }
     
-            MessageEmbed embed = new EmbedBuilder()
-                .setColor(0x0172BA)
+            MessageEmbed embed = bot.getCommandUtil().getEmbed()
                 .addField(
                     "User/Organisation:",
                     finalUserLink,

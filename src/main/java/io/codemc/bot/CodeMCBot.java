@@ -24,8 +24,10 @@ import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.commands.CmdDisable;
+import io.codemc.bot.commands.CmdMsg;
 import io.codemc.bot.commands.CmdSubmit;
 import io.codemc.bot.utils.CommandUtil;
+import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -62,8 +64,9 @@ public class CodeMCBot{
             .addSlashCommands(
                 new CmdApplication(this),
                 new CmdDisable(),
+                new CmdMsg(this),
                 new CmdSubmit(this)
-            ).forceGuildOnly("405915656039694336")
+            ).forceGuildOnly(Constants.SERVER)
             .build();
         
         JDABuilder.createDefault(token)
