@@ -22,7 +22,6 @@ import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.Constants;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
