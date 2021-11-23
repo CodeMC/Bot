@@ -129,7 +129,7 @@ public class CmdMsg extends SlashCommand{
                 
                 if(messageId != null){
                     targetChannel.retrieveMessageById(messageId)
-                        .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()).override(true))
+                        .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()))
                         .queue(
                             m -> hook.editOriginal("Successfully [edited message](<" + m.getJumpUrl() + ">)!").queue(),
                             e -> hook.editOriginal("Unable to edit original message! Is it even from me?").queue()

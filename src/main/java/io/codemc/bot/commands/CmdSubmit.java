@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class CmdSubmit extends SlashCommand{
@@ -48,7 +49,7 @@ public class CmdSubmit extends SlashCommand{
         this.bot = bot;
         
         this.name = "submit";
-        this.help = "Send a Access Request for the CodeMC CI.";
+        this.help = "Make a Join application for CodeMC to review.";
         
         this.options = Arrays.asList(
             new OptionData(
@@ -212,7 +213,8 @@ public class CmdSubmit extends SlashCommand{
                     hook.editOriginal("Submission Cancelled! You can delete this message now.").queue(
                         m -> message.editMessage(
                             "Submission cancelled! You can close the DMs now."
-                        ).override(true).queue(
+                        ).setActionRows(Collections.emptyList())
+                        .queue(
                             null,
                             e -> LOG.warn("Unable to edit own message in User DMs.")
                         )
@@ -226,8 +228,9 @@ public class CmdSubmit extends SlashCommand{
                     
                     message.editMessage(
                         "There was an issue while processing your request.\n" +
-                        "Please check the command-response of the bot for further information!"
-                    ).override(true).queue(
+                        "Please check the command-response of the bot on the server for further information!"
+                    ).setActionRows(Collections.emptyList())
+                    .queue(
                         null,
                         e -> LOG.warn("Unable to edit own message in User DMs.")
                     );
@@ -235,9 +238,13 @@ public class CmdSubmit extends SlashCommand{
                 }
                 
                 apply.sendMessageEmbeds(embed).queue(m -> {
+                    m.addReaction("\uD83D\uDC4D").queue();
+                    m.addReaction("\uD83D\uDC4E").queue();
+                    
                     message.editMessage(
                         "Submission completed! You can close the DMs now."
-                    ).queue(
+                    ).setActionRows(Collections.emptyList())
+                    .queue(
                         null,
                         e -> LOG.warn("Unable to edit own message in User DMs.")
                     );
@@ -250,7 +257,7 @@ public class CmdSubmit extends SlashCommand{
             },
             1, TimeUnit.MINUTES,
             () -> {
-                message.editMessage("Interaction Timed out!").override(true).queue(
+                message.editMessage("Interaction Timed out!").setActionRows(Collections.emptyList()).queue(
                     null,
                     e -> LOG.warn("Unable to edit own message in User DMs.")
                 );

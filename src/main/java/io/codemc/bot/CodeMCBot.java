@@ -60,7 +60,7 @@ public class CodeMCBot{
                 "282975975954710528", // tr7zw#4005
                 "249717577796812801"  // Xephi#2537
             )
-            .setActivity(Activity.of(Activity.ActivityType.WATCHING, "Access applications"))
+            .setActivity(null)
             .addSlashCommands(
                 new CmdApplication(this),
                 new CmdDisable(),
