@@ -57,8 +57,7 @@ public class CodeMCBot{
             )
             .setCoOwnerIds(
                 "143088571656437760", // sgdc3#0001
-                "282975975954710528", // tr7zw#4005
-                "249717577796812801"  // Xephi#2537
+                "282975975954710528" // tr7zw#4005
             )
             .setActivity(null)
             .addSlashCommands(
