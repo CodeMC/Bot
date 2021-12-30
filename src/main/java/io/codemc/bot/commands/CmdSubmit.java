@@ -116,7 +116,7 @@ public class CmdSubmit extends SlashCommand{
                 if(userUrl.pathSegments().size() <= 0){
                     bot.getCommandUtil().sendError(
                         hook,
-                        "User URL does not have a valid format!\n" +
+                        "User URL does not have a valid format!",
                         "Make sure it follows the pattern `https://domain.tld/:user`"
                     );
                     return;
@@ -152,7 +152,11 @@ public class CmdSubmit extends SlashCommand{
                     .flatMap(channel -> channel.sendMessage(getConfirm(embed, cutDesc)))
                     .queue(
                         message -> handleButtons(message, event.getUser(), guild, embed, hook),
-                        e -> bot.getCommandUtil().sendError(hook, "Can't send a Private Message!")
+                        e -> bot.getCommandUtil().sendError(
+                            hook,
+                            "Can't send a Private Message!",
+                            "Make sure the bot can send you one from this server."
+                        )
                     );
         });
     }
@@ -175,7 +179,9 @@ public class CmdSubmit extends SlashCommand{
         if(cutDescription){
             builder.append("\n")
                 .append("\n")
-                .append("*Your description was longer than " + MessageEmbed.VALUE_MAX_LENGTH + " characters and has been truncated!*");
+                .append("*Your description was longer than ")
+                .append(MessageEmbed.VALUE_MAX_LENGTH)
+                .append(" and has been truncated!*");
         }
         
         builder.append("\n")
@@ -224,11 +230,14 @@ public class CmdSubmit extends SlashCommand{
     
                 TextChannel apply = guild.getTextChannelById(Constants.REQUEST_ACCESS);
                 if(apply == null){
-                    bot.getCommandUtil().sendError(hook, "Unable to retrieve the request-access channel!");
+                    bot.getCommandUtil().sendError(hook,
+                        "Unable to retrieve the request-access channel!",
+                        "If this error persists, report it to staff."
+                    );
                     
                     message.editMessage(
                         "There was an issue while processing your request.\n" +
-                        "Please check the command-response of the bot on the server for further information!"
+                        "Please check the original command-response in the server for more details."
                     ).setActionRows(Collections.emptyList())
                     .queue(
                         null,
@@ -242,7 +251,7 @@ public class CmdSubmit extends SlashCommand{
                     m.addReaction("\uD83D\uDC4E").queue();
                     
                     message.editMessage(
-                        "Submission completed! You can close the DMs now."
+                        "Submission completed! You can close these DMs now."
                     ).setActionRows(Collections.emptyList())
                     .queue(
                         null,
@@ -257,15 +266,18 @@ public class CmdSubmit extends SlashCommand{
             },
             1, TimeUnit.MINUTES,
             () -> {
-                message.editMessage("Interaction Timed out!").setActionRows(Collections.emptyList()).queue(
-                    null,
-                    e -> LOG.warn("Unable to edit own message in User DMs.")
-                );
+                message.editMessage("Interaction Timed out!")
+                    .setActionRows(Collections.emptyList())
+                    .queue(
+                        null, 
+                        e -> LOG.warn("Unable to edit own message in User DMs.")
+                    );
                 
-                hook.editOriginal("Interaction Timed out!").queue(
-                    null,
-                    e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
-                );
+                hook.editOriginal("Interaction Timed out!")
+                    .queue(
+                        null, 
+                        e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
+                    );
             }
         );
     }
