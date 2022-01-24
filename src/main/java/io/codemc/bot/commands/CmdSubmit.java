@@ -247,8 +247,8 @@ public class CmdSubmit extends SlashCommand{
                 }
                 
                 apply.sendMessageEmbeds(embed).queue(m -> {
-                    m.addReaction("\uD83D\uDC4D").queue();
-                    m.addReaction("\uD83D\uDC4E").queue();
+                    m.addReaction(":like:935126958193405962").queue();
+                    m.addReaction(":dislike:935126958235344927").queue();
                     
                     message.editMessage(
                         "Submission completed! You can close these DMs now."
