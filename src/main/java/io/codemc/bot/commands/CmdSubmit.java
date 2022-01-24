@@ -136,7 +136,7 @@ public class CmdSubmit extends SlashCommand{
                     true
                 ).addField(
                     "Submited by:",
-                    "`" + event.getUser().getAsTag() + "`",
+                    "`" + event.getUser().getAsTag() + "` (" + event.getUser().getAsMention() + ")",
                     true
                 ).addField(
                     "Description",
