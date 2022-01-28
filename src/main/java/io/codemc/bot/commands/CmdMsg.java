@@ -190,7 +190,8 @@ public class CmdMsg extends SlashCommand{
                 new OptionData(OptionType.CHANNEL, "channel", "The channel to send the message in.")
                     .setRequired(true)
                     .setChannelTypes(ChannelType.TEXT),
-                new OptionData(OptionType.STRING, "message-id", "The ID of the message to edit.").setRequired(true)
+                new OptionData(OptionType.STRING, "message-id", "The ID of the message to edit.")
+                    .setRequired(true)
             );
         }
         

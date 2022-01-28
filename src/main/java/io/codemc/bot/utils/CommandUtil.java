@@ -91,7 +91,7 @@ public class CommandUtil{
             .setColor(0xFF0000)
             .setDescription(
                 "There was an error while trying to handle the command!\n" +
-                    "If this error persists, report it to Andre_601#0601"
+                "If this error persists, report it to Andre_601#0601"
             ).addField(
                 "Error:",
                 reason,
