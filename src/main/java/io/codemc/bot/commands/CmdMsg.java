@@ -75,20 +75,11 @@ public class CmdMsg extends SlashCommand{
         }
     
         Guild guild = targetChannel.getGuild();
-        if(!guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_WRITE)){
-            bot.getCommandUtil().sendError(event, "I lack the `Send Message` Permission for the selected channel!");
+        if(bot.getCommandUtil().lackPerms(event, guild, targetChannel, Permission.MESSAGE_WRITE, Permission.MESSAGE_HISTORY))
             return;
-        }
         
-        if(!guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_HISTORY)){
-            bot.getCommandUtil().sendError(event, "I lack the `View Channel History` Permission for the selected channel!");
+        if(isEmbed && bot.getCommandUtil().lackPerms(event, guild, targetChannel, Permission.MESSAGE_EMBED_LINKS))
             return;
-        }
-        
-        if(isEmbed && !guild.getSelfMember().hasPermission(targetChannel, Permission.MESSAGE_EMBED_LINKS)){
-            bot.getCommandUtil().sendError(event, "I lack the `Embed Link` Permission for the selected channel!");
-            return;
-        }
         
         event.reply(
             "Please provide the message to use for the message.\n" +
