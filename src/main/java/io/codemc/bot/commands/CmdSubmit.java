@@ -21,6 +21,7 @@ package io.codemc.bot.commands;
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -77,13 +78,20 @@ public class CmdSubmit extends SlashCommand{
         String description = bot.getCommandUtil().getString(event, "description");
         
         if(username == null || repository == null || description == null){
-            bot.getCommandUtil().sendError(event, "The provided username/link, repository-url and/or description were null!");
+            CommandUtil.EmbedReply.fromEvent(event)
+                .withError("Either the username/-link, repository URL or description returned null.")
+                .send();
             return;
         }
     
         Guild guild = event.getGuild();
         if(guild == null){
-            bot.getCommandUtil().sendError(event, "Unable to retrieve Server.", "Make sure to execute this in a Server!");
+            CommandUtil.EmbedReply.fromEvent(event)
+                .withError(
+                    "Could not get CodeMC Server.",
+                    "Make sure you use this command in it."
+                )
+                .send();
             return;
         }
         
@@ -98,11 +106,12 @@ public class CmdSubmit extends SlashCommand{
         event.deferReply().setEphemeral(true).queue(hook -> {
             HttpUrl repoUrl = HttpUrl.parse(repository);
             if(repoUrl == null || repoUrl.pathSegments().size() <= 1){
-                bot.getCommandUtil().sendError(
-                    hook,
-                    "The provided Repository URL (`" + repository + "`) was invalid!",
-                    "Make sure it follows the pattern `https://domain.tld/:user/:repository`"
-                );
+                CommandUtil.EmbedReply.fromHook(hook)
+                    .withError(
+                        "The provided repository (" + repository + ") is not a valid URL.",
+                        "Make sure it follows the format `https://domain.tld/:user/:repository`"
+                    )
+                    .send();
                 return;
             }
             
@@ -114,11 +123,12 @@ public class CmdSubmit extends SlashCommand{
                 finalUserLink = getLink(username, null);
             }else{
                 if(userUrl.pathSegments().size() <= 0){
-                    bot.getCommandUtil().sendError(
-                        hook,
-                        "User URL does not have a valid format!",
-                        "Make sure it follows the pattern `https://domain.tld/:user`"
-                    );
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError(
+                            "The provided User URL (" + username + ") is not a valid URL.",
+                            "Make sure it follows he format `https://domain.tld/:user`"
+                        )
+                        .send();
                     return;
                 }
                 
@@ -149,15 +159,16 @@ public class CmdSubmit extends SlashCommand{
                 ).build();
             
             event.getUser().openPrivateChannel()
-                    .flatMap(channel -> channel.sendMessage(getConfirm(embed, cutDesc)))
-                    .queue(
-                        message -> handleButtons(message, event.getUser(), guild, embed, hook),
-                        e -> bot.getCommandUtil().sendError(
-                            hook,
-                            "Can't send a Private Message!",
-                            "Make sure the bot can send you one from this server."
+                .flatMap(channel -> channel.sendMessage(getConfirm(embed, cutDesc)))
+                .queue(
+                    message -> handleButtons(message, event.getUser(), guild, embed, hook),
+                    e -> CommandUtil.EmbedReply.fromHook(hook)
+                        .withError(
+                            "Cannot send a private message to you.",
+                            "Make sure that you accept Private messages from this server."
                         )
-                    );
+                        .send()
+                );
         });
     }
     
@@ -181,7 +192,7 @@ public class CmdSubmit extends SlashCommand{
                 .append("\n")
                 .append("*Your description was longer than ")
                 .append(MessageEmbed.VALUE_MAX_LENGTH)
-                .append(" and has been truncated!*");
+                .append(" characters and has been truncated!*");
         }
         
         builder.append("\n")
@@ -230,10 +241,12 @@ public class CmdSubmit extends SlashCommand{
     
                 TextChannel apply = guild.getTextChannelById(Constants.REQUEST_ACCESS);
                 if(apply == null){
-                    bot.getCommandUtil().sendError(hook,
-                        "Unable to retrieve the request-access channel!",
-                        "If this error persists, report it to staff."
-                    );
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError(
+                            "Cannot get the #request-access channel.",
+                            "Please report this to the CodeMC staff!"
+                        )
+                        .send();
                     
                     message.editMessage(
                         "There was an issue while processing your request.\n" +

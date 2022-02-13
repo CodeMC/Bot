@@ -20,6 +20,7 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -65,12 +66,16 @@ public class CmdMsg extends SlashCommand{
         String messageId = bot.getCommandUtil().getString(event, "message-id");
         
         if(targetChannel == null){
-            bot.getCommandUtil().sendError(event, "The provided channel was null!");
+            CommandUtil.EmbedReply.fromEvent(event)
+                .withError("The provided TextChannel was null.")
+                .send();
             return;
         }
         
         if(isEdit && (messageId == null)){
-            bot.getCommandUtil().sendError(event, "The provided message id was null!");
+            CommandUtil.EmbedReply.fromEvent(event)
+                .withError("The provided Message ID was null.")
+                .send();
             return;
         }
     

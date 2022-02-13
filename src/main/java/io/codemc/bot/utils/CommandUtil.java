@@ -18,16 +18,19 @@
 
 package io.codemc.bot.utils;
 
+import ch.qos.logback.classic.Logger;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import org.slf4j.LoggerFactory;
 
 public class CommandUtil{
+    
+    private static final Logger LOG = (Logger)LoggerFactory.getLogger(CommandUtil.class);
     
     public CommandUtil(){}
     
@@ -55,30 +58,16 @@ public class CommandUtil{
         return (TextChannel)mapping.getAsGuildChannel();
     }
     
-    public void sendError(SlashCommandEvent event, String... reason){
-        MessageEmbed embed = getErrorEmbed(String.join("\n", reason));
-        
-        event.replyEmbeds(embed).setEphemeral(true).queue();
-    }
-    
-    public void sendError(InteractionHook hook, String... reason){
-        MessageEmbed embed = getErrorEmbed(String.join("\n", reason));
-        
-        hook.editOriginalEmbeds(embed).queue();
-    }
-    
-    public EmbedBuilder getEmbed(){
-        return new EmbedBuilder().setColor(0x0172BA);
-    }
-    
     public boolean lackPerms(SlashCommandEvent event, Guild guild, TextChannel tc, Permission... permissions){
         for(Permission permission : permissions){
             if(!guild.getSelfMember().hasPermission(tc, permission)){
-                sendError(event, String.format(
-                    "I lack the `%s` permission in %s",
-                    permission.getName(),
-                    tc.getAsMention()
-                ));
+                EmbedReply.fromEvent(event)
+                    .withError(String.format(
+                        "I lack the `%s` permission for %s",
+                        permission.getName(),
+                        tc.getAsMention()
+                    ))
+                    .send();
                 return true;
             }
         }
@@ -86,16 +75,69 @@ public class CommandUtil{
         return false;
     }
     
-    private MessageEmbed getErrorEmbed(String reason){
-        return new EmbedBuilder()
-            .setColor(0xFF0000)
-            .setDescription(
-                "There was an error while trying to handle the command!\n" +
-                "If this error persists, report it to Andre_601#0601"
-            ).addField(
-                "Error:",
-                reason,
-                false
-            ).build();
+    public EmbedBuilder getEmbed(){
+        return new EmbedBuilder().setColor(0x0172BA);
+    }
+    
+    public static class EmbedReply {
+        
+        private final InteractionHook hook;
+        private final SlashCommandEvent event;
+        private final EmbedBuilder builder = new EmbedBuilder();
+        
+        private EmbedReply(SlashCommandEvent event){
+            this.event = event;
+            this.hook = null;
+        }
+        
+        private EmbedReply(InteractionHook hook){
+            this.event = null;
+            this.hook = hook;
+        }
+        
+        public static EmbedReply fromEvent(SlashCommandEvent event){
+            return new EmbedReply(event);
+        }
+        
+        public static EmbedReply fromHook(InteractionHook hook){
+            return new EmbedReply(hook);
+        }
+        
+        public EmbedReply withMessage(String... lines){
+            builder.setDescription(String.join("\n", lines));
+            return this;
+        }
+        
+        public EmbedReply asSuccess(){
+            builder.setColor(0x00FF00);
+            return this;
+        }
+        
+        public EmbedReply withError(String... lines){
+            builder.setColor(0xFF0000)
+                .setDescription(
+                    "There was an error while trying to handle the command!\n" +
+                    "If this error persists, report it to Andre_601#0601"
+                )
+                .addField("Error:", String.join("\n", lines), false);
+            return this;
+        }
+        
+        public EmbedReply withWarning(String... lines){
+            builder.setColor(0xFFC800)
+                .addField("Warning:", String.join("\n", lines), false);
+            return this;
+        }
+        
+        public void send(){
+            if(event != null){
+                event.replyEmbeds(builder.build()).queue();
+            }else
+            if(hook != null){
+                hook.editOriginalEmbeds(builder.build()).queue();
+            }else{
+                LOG.error("Received EmbedReply class with neither SlashCommandEvent nor InteractionHook set!");
+            }
+        }
     }
 }
