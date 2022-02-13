@@ -262,7 +262,7 @@ public class CmdApplication extends SlashCommand{
             }
             
             event.deferReply(true).queue(
-                hook -> handleResponse(bot, hook, messageId, null, true)
+                hook -> handleResponse(bot, hook, messageId, url, true)
             );
         }
     }
