@@ -127,13 +127,17 @@ public class CmdMsg extends SlashCommand{
                     targetChannel.retrieveMessageById(messageId)
                         .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()))
                         .queue(
-                            m -> hook.editOriginal("Successfully [edited message](<" + m.getJumpUrl() + ">)!").queue(),
+                            m -> CommandUtil.EmbedReply.fromHook(hook)
+                                .withMessage("Successfully [edited message](" + m.getJumpUrl() + ")!")
+                                .asSuccess()
+                                .send(),
                             e -> CommandUtil.EmbedReply.fromHook(hook)
                                 .withError(
                                     "Unable to edit message. Was it even from me?",
                                     "",
                                     "Error response: " + e.getMessage()
                                 )
+                                .send()
                         );
                 }else{
                     targetChannel.sendMessage(builder.build()).queue(
