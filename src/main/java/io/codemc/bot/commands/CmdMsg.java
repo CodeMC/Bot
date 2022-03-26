@@ -93,7 +93,7 @@ public class CmdMsg extends SlashCommand{
         ).queue(hook -> handleResponse(hook, targetChannel, isEmbed, currentChannel.getId(), event.getUser().getId(), messageId, bot));
     }
     
-    private static void handleResponse(InteractionHook hook,  TextChannel targetChannel, boolean isEmbed, String currentChannelId,
+    private static void handleResponse(InteractionHook hook, TextChannel targetChannel, boolean isEmbed, String currentChannelId,
                                        String userId, String messageId, CodeMCBot bot){
         bot.getEventWaiter().waitForEvent(
             GuildMessageReceivedEvent.class,
@@ -128,7 +128,12 @@ public class CmdMsg extends SlashCommand{
                         .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()))
                         .queue(
                             m -> hook.editOriginal("Successfully [edited message](<" + m.getJumpUrl() + ">)!").queue(),
-                            e -> hook.editOriginal("Unable to edit original message! Is it even from me?").queue()
+                            e -> CommandUtil.EmbedReply.fromHook(hook)
+                                .withError(
+                                    "Unable to edit message. Was it even from me?",
+                                    "",
+                                    "Error response: " + e.getMessage()
+                                )
                         );
                 }else{
                     targetChannel.sendMessage(builder.build()).queue(
