@@ -20,7 +20,6 @@ package io.codemc.bot.commands;
 
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
-import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -41,7 +40,7 @@ public class CmdApplication extends SlashCommand{
     
     private static final Logger LOG = (Logger)LoggerFactory.getLogger(CmdApplication.class);
     
-    public CmdApplication(CodeMCBot bot){
+    public CmdApplication(){
         
         this.name = "application";
         this.help = "Accept or deny applications.";
@@ -53,15 +52,15 @@ public class CmdApplication extends SlashCommand{
         };
         
         this.children = new SlashCommand[]{
-            new Accept(bot),
-            new Deny(bot)
+            new Accept(),
+            new Deny()
         };
     }
     
     @Override
     protected void execute(SlashCommandEvent event){}
     
-    private static void handleResponse(CodeMCBot bot, InteractionHook hook, String id, String str, boolean accepted){
+    private static void handleResponse(InteractionHook hook, String id, String str, boolean accepted){
         Guild guild = hook.getJDA().getGuildById(Constants.SERVER);
         if(guild == null){
             CommandUtil.EmbedReply.fromHook(hook)
@@ -231,11 +230,7 @@ public class CmdApplication extends SlashCommand{
     
     private static class Accept extends SlashCommand{
         
-        private final CodeMCBot bot;
-        
-        public Accept(CodeMCBot bot){
-            this.bot = bot;
-            
+        public Accept(){
             this.name = "accept";
             this.help = "Accept an application.";
     
@@ -253,8 +248,8 @@ public class CmdApplication extends SlashCommand{
     
         @Override
         protected void execute(SlashCommandEvent event){
-            String messageId = bot.getCommandUtil().getString(event, "id");
-            String url = bot.getCommandUtil().getString(event, "project-url");
+            String messageId = CommandUtil.getString(event, "id");
+            String url = CommandUtil.getString(event, "project-url");
             
             if(messageId == null || url == null){
                 CommandUtil.EmbedReply.fromEvent(event).withError("Message ID or Project URL was null.").send();
@@ -262,18 +257,14 @@ public class CmdApplication extends SlashCommand{
             }
             
             event.deferReply(true).queue(
-                hook -> handleResponse(bot, hook, messageId, url, true)
+                hook -> handleResponse(hook, messageId, url, true)
             );
         }
     }
     
     private static class Deny extends SlashCommand{
         
-        private final CodeMCBot bot;
-        
-        public Deny(CodeMCBot bot){
-            this.bot = bot;
-            
+        public Deny(){
             this.name = "deny";
             this.help = "Deny an application.";
             
@@ -291,8 +282,8 @@ public class CmdApplication extends SlashCommand{
     
         @Override
         protected void execute(SlashCommandEvent event){
-            String messageId = bot.getCommandUtil().getString(event, "id");
-            String reason = bot.getCommandUtil().getString(event, "reason");
+            String messageId = CommandUtil.getString(event, "id");
+            String reason = CommandUtil.getString(event, "reason");
             
             if(messageId == null || reason == null){
                 CommandUtil.EmbedReply.fromEvent(event).withError("Message ID or Reason was null.").send();
@@ -300,7 +291,7 @@ public class CmdApplication extends SlashCommand{
             }
     
             event.deferReply(true).queue(
-                hook -> handleResponse(bot, hook, messageId, reason, false)
+                hook -> handleResponse(hook, messageId, reason, false)
             );
         }
     }

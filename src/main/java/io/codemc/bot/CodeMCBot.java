@@ -26,7 +26,6 @@ import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.commands.CmdDisable;
 import io.codemc.bot.commands.CmdMsg;
 import io.codemc.bot.commands.CmdSubmit;
-import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -39,8 +38,7 @@ public class CodeMCBot{
     
     private final Logger LOG = (Logger)LoggerFactory.getLogger(CodeMCBot.class);
     
-    private final CommandUtil commandUtil = new CommandUtil();
-    private final EventWaiter eventWaiter = new EventWaiter();
+    public static final EventWaiter eventWaiter = new EventWaiter();
     
     public static void main(String[] args){
         try{
@@ -61,10 +59,10 @@ public class CodeMCBot{
             )
             .setActivity(null)
             .addSlashCommands(
-                new CmdApplication(this),
+                new CmdApplication(),
                 new CmdDisable(),
-                new CmdMsg(this),
-                new CmdSubmit(this)
+                new CmdMsg(),
+                new CmdSubmit()
             ).forceGuildOnly(Constants.SERVER)
             .build();
         
@@ -77,13 +75,5 @@ public class CodeMCBot{
                 commandClient,
                 eventWaiter
             ).build();
-    }
-    
-    public CommandUtil getCommandUtil(){
-        return commandUtil;
-    }
-    
-    public EventWaiter getEventWaiter(){
-        return eventWaiter;
     }
 }

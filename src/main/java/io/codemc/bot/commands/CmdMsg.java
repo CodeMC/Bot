@@ -19,7 +19,6 @@
 package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
-import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -35,9 +34,11 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import static io.codemc.bot.CodeMCBot.eventWaiter;
+
 public class CmdMsg extends SlashCommand{
     
-    public CmdMsg(CodeMCBot bot){
+    public CmdMsg(){
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
         
@@ -48,8 +49,8 @@ public class CmdMsg extends SlashCommand{
         };
         
         this.children = new SlashCommand[]{
-            new Send(bot),
-            new Edit(bot)
+            new Send(),
+            new Edit()
         };
     }
     
@@ -57,13 +58,13 @@ public class CmdMsg extends SlashCommand{
     protected void execute(SlashCommandEvent event){}
     
     // Method to handle the command types and reduce duplicate code.
-    private static void handleCommand(SlashCommandEvent event, boolean isEdit, CodeMCBot bot){
-        boolean isEmbed = bot.getCommandUtil().getBoolean(event, "embed", false);
+    private static void handleCommand(SlashCommandEvent event, boolean isEdit){
+        boolean isEmbed = CommandUtil.getBoolean(event, "embed", false);
         
         TextChannel currentChannel = event.getTextChannel();
-        TextChannel targetChannel = bot.getCommandUtil().getChannel(event, "channel");
+        TextChannel targetChannel = CommandUtil.getChannel(event, "channel");
         
-        String messageId = bot.getCommandUtil().getString(event, "message-id");
+        String messageId = CommandUtil.getString(event, "message-id");
         
         if(targetChannel == null){
             CommandUtil.EmbedReply.fromEvent(event)
@@ -80,22 +81,22 @@ public class CmdMsg extends SlashCommand{
         }
     
         Guild guild = targetChannel.getGuild();
-        if(bot.getCommandUtil().lackPerms(event, guild, targetChannel, Permission.MESSAGE_WRITE, Permission.MESSAGE_HISTORY))
+        if(CommandUtil.lackPerms(event, guild, targetChannel, Permission.MESSAGE_WRITE, Permission.MESSAGE_HISTORY))
             return;
         
-        if(isEmbed && bot.getCommandUtil().lackPerms(event, guild, targetChannel, Permission.MESSAGE_EMBED_LINKS))
+        if(isEmbed && CommandUtil.lackPerms(event, guild, targetChannel, Permission.MESSAGE_EMBED_LINKS))
             return;
         
         event.reply(
             "Please provide the message to use for the message.\n" +
             "\n" +
             "> **The request will time out in 5 minutes!**"
-        ).queue(hook -> handleResponse(hook, targetChannel, isEmbed, currentChannel.getId(), event.getUser().getId(), messageId, bot));
+        ).queue(hook -> handleResponse(hook, targetChannel, isEmbed, currentChannel.getId(), event.getUser().getId(), messageId));
     }
     
     private static void handleResponse(InteractionHook hook, TextChannel targetChannel, boolean isEmbed, String currentChannelId,
-                                       String userId, String messageId, CodeMCBot bot){
-        bot.getEventWaiter().waitForEvent(
+                                       String userId, String messageId){
+        eventWaiter.waitForEvent(
             GuildMessageReceivedEvent.class,
             event -> {
     
@@ -116,7 +117,7 @@ public class CmdMsg extends SlashCommand{
                 if(isEmbed){
                     builder.append(EmbedBuilder.ZERO_WIDTH_SPACE)
                         .setEmbeds(
-                            bot.getCommandUtil().getEmbed()
+                            CommandUtil.getEmbed()
                                 .setDescription(message)
                                 .build()
                         );
@@ -175,11 +176,7 @@ public class CmdMsg extends SlashCommand{
     
     private static class Send extends SlashCommand{
         
-        private final CodeMCBot bot;
-        
-        public Send(CodeMCBot bot){
-            this.bot = bot;
-            
+        public Send(){
             this.name = "send";
             this.help = "Sends a message or embed to a specific channel";
             
@@ -200,17 +197,13 @@ public class CmdMsg extends SlashCommand{
         
         @Override
         protected void execute(SlashCommandEvent event){
-            handleCommand(event, false, bot);
+            handleCommand(event, false);
         }
     }
     
     private static class Edit extends SlashCommand{
         
-        private final CodeMCBot bot;
-        
-        public Edit(CodeMCBot bot){
-            this.bot = bot;
-            
+        public Edit(){
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
             
@@ -233,7 +226,7 @@ public class CmdMsg extends SlashCommand{
         
         @Override
         protected void execute(SlashCommandEvent event){
-            handleCommand(event, true, bot);
+            handleCommand(event, true);
         }
     }
 }

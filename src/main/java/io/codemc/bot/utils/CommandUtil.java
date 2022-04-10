@@ -34,7 +34,7 @@ public class CommandUtil{
     
     public CommandUtil(){}
     
-    public String getString(SlashCommandEvent event, String key){
+    public static String getString(SlashCommandEvent event, String key){
         OptionMapping mapping = event.getOption(key);
         if(mapping == null)
             return null;
@@ -42,7 +42,7 @@ public class CommandUtil{
         return mapping.getAsString();
     }
     
-    public boolean getBoolean(SlashCommandEvent event, String key, boolean def){
+    public static boolean getBoolean(SlashCommandEvent event, String key, boolean def){
         OptionMapping mapping = event.getOption(key);
         if(mapping == null)
             return def;
@@ -50,7 +50,7 @@ public class CommandUtil{
         return mapping.getAsBoolean();
     }
     
-    public TextChannel getChannel(SlashCommandEvent event, String key){
+    public static TextChannel getChannel(SlashCommandEvent event, String key){
         OptionMapping mapping = event.getOption(key);
         if(mapping == null)
             return null;
@@ -58,7 +58,7 @@ public class CommandUtil{
         return (TextChannel)mapping.getAsGuildChannel();
     }
     
-    public boolean lackPerms(SlashCommandEvent event, Guild guild, TextChannel tc, Permission... permissions){
+    public static  boolean lackPerms(SlashCommandEvent event, Guild guild, TextChannel tc, Permission... permissions){
         for(Permission permission : permissions){
             if(!guild.getSelfMember().hasPermission(tc, permission)){
                 EmbedReply.fromEvent(event)
@@ -75,7 +75,7 @@ public class CommandUtil{
         return false;
     }
     
-    public EmbedBuilder getEmbed(){
+    public static EmbedBuilder getEmbed(){
         return new EmbedBuilder().setColor(0x0172BA);
     }
     

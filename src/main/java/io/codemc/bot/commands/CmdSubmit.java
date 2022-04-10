@@ -20,7 +20,6 @@ package io.codemc.bot.commands;
 
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
-import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -40,15 +39,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import static io.codemc.bot.CodeMCBot.eventWaiter;
+
 public class CmdSubmit extends SlashCommand{
     
     private final Logger LOG = (Logger)LoggerFactory.getLogger(CmdSubmit.class);
     
-    private final CodeMCBot bot;
-    
-    public CmdSubmit(CodeMCBot bot){
-        this.bot = bot;
-        
+    public CmdSubmit(){
         this.name = "submit";
         this.help = "Make a Join application for CodeMC to review.";
         
@@ -73,9 +70,9 @@ public class CmdSubmit extends SlashCommand{
     
     @Override
     protected void execute(SlashCommandEvent event){
-        String username = bot.getCommandUtil().getString(event, "user");
-        String repository = bot.getCommandUtil().getString(event, "repository");
-        String description = bot.getCommandUtil().getString(event, "description");
+        String username = CommandUtil.getString(event, "user");
+        String repository = CommandUtil.getString(event, "repository");
+        String description = CommandUtil.getString(event, "description");
         
         if(username == null || repository == null || description == null){
             CommandUtil.EmbedReply.fromEvent(event)
@@ -135,7 +132,7 @@ public class CmdSubmit extends SlashCommand{
                 finalUserLink = getLink(userUrl.pathSegments().get(0), userUrl.toString());
             }
     
-            MessageEmbed embed = bot.getCommandUtil().getEmbed()
+            MessageEmbed embed = CommandUtil.getEmbed()
                 .addField(
                     "User/Organisation:",
                     finalUserLink,
@@ -208,7 +205,7 @@ public class CmdSubmit extends SlashCommand{
     }
     
     private void handleButtons(Message message, User user, Guild guild, MessageEmbed embed, InteractionHook hook){
-        bot.getEventWaiter().waitForEvent(
+        eventWaiter.waitForEvent(
             ButtonClickEvent.class,
             event -> {
                 if(event.getUser().isBot())
