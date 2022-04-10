@@ -128,22 +128,43 @@ public class CmdMsg extends SlashCommand{
                     targetChannel.retrieveMessageById(messageId)
                         .flatMap(msg -> msg.editMessage(builder.build()).override(true))
                         .queue(
-                            m -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withMessage("Successfully [edited message](" + m.getJumpUrl() + ")!")
-                                .asSuccess()
-                                .send(),
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withIssue(
-                                    "Cannot edit provided Message. Is it even one of my own?",
-                                    "",
-                                    "Error response: `" + e.getMessage() + "`"
-                                )
-                                .send()
+                            m -> {
+                                CommandUtil.EmbedReply.fromHook(hook)
+                                    .withMessage("Successfully [edited message](" + m.getJumpUrl() + ")!")
+                                    .asSuccess()
+                                    .send();
+                                event.getMessage().addReaction("✅").queue();
+                            },
+                            e -> {
+                                CommandUtil.EmbedReply.fromHook(hook)
+                                    .withIssue(
+                                        "Cannot edit provided Message. Is it even one of my own?",
+                                        "",
+                                        "Reason: `" + e.getMessage() + "`"
+                                    )
+                                    .send();
+                                event.getMessage().addReaction("❌").queue();
+                            }
                         );
                 }else{
                     targetChannel.sendMessage(builder.build()).queue(
-                        m -> hook.editOriginal("Successfully send [new message](<" + m.getJumpUrl() + ">)!").queue(),
-                        e -> hook.editOriginal("Unable to send new message in target channel!").queue()
+                        m -> {
+                            CommandUtil.EmbedReply.fromHook(hook)
+                                .withMessage("Successfully [send new Message](" + m.getJumpUrl() + ")!")
+                                .asSuccess()
+                                .send();
+                            event.getMessage().addReaction("✅").queue();
+                        },
+                        e -> {
+                            CommandUtil.EmbedReply.fromHook(hook)
+                                .withIssue(
+                                    "Cannot send new message to target channel.",
+                                    "",
+                                    "Reason: `" + e.getMessage() + "`"
+                                )
+                                .send();
+                            event.getMessage().addReaction("❌").queue();
+                        }
                     );
                 }
             },
