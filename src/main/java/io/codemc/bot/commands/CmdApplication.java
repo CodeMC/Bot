@@ -160,7 +160,7 @@ public class CmdApplication extends SlashCommand{
                 if(authorRole == null){
                     CommandUtil.EmbedReply.fromHook(hook)
                         .withMessage("Accepted Application!")
-                        .withWarning("Could not apply Author role to user. Role not found!")
+                        .withIssue("Could not apply Author role to user. Role not found!")
                         .send();
                     return;
                 }
@@ -172,19 +172,19 @@ public class CmdApplication extends SlashCommand{
                             ErrorResponse.MISSING_PERMISSIONS,
                             e -> CommandUtil.EmbedReply.fromHook(hook)
                                 .withMessage("Accepted Application!")
-                                .withWarning("I lack the `Manage Roles` permission to apply the Author role.")
+                                .withIssue("I lack the `Manage Roles` permission to apply the Author role.")
                                 .send()
                         ).handle(
                             ErrorResponse.UNKNOWN_MEMBER,
                             e -> CommandUtil.EmbedReply.fromHook(hook)
                                 .withMessage("Accepted Application!")
-                                .withWarning("Member was not found in the CodeMC Server.")
+                                .withIssue("Member was not found in the CodeMC Server.")
                                 .send()
                         ).handle(
                             ErrorResponse.UNKNOWN_ROLE,
                             e -> CommandUtil.EmbedReply.fromHook(hook)
                                 .withMessage("Accepted Application!")
-                                .withWarning("The Author Role was not found.")
+                                .withIssue("The Author Role was not found.")
                                 .send()
                         )
                 );

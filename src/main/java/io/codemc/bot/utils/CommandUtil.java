@@ -123,8 +123,12 @@ public class CommandUtil{
             return this;
         }
         
-        public EmbedReply withWarning(String... lines){
+        public EmbedReply withIssue(String... lines){
             builder.setColor(0xFFC800)
+                .setDescription(
+                    "There was an issue while handling the command.\n" +
+                    "If this issue persists, report it to Andre_601#0601"
+                )
                 .addField("Warning:", String.join("\n", lines), false);
             return this;
         }

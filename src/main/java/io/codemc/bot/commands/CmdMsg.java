@@ -22,6 +22,7 @@ import com.jagrosh.jdautilities.command.SlashCommand;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -32,7 +33,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class CmdMsg extends SlashCommand{
@@ -114,28 +114,29 @@ public class CmdMsg extends SlashCommand{
                 
                 MessageBuilder builder = new MessageBuilder();
                 if(isEmbed){
-                    builder.setEmbeds(
-                        bot.getCommandUtil().getEmbed()
-                            .setDescription(message)
-                            .build()
-                    );
+                    builder.append(EmbedBuilder.ZERO_WIDTH_SPACE)
+                        .setEmbeds(
+                            bot.getCommandUtil().getEmbed()
+                                .setDescription(message)
+                                .build()
+                        );
                 }else{
                     builder.append(message);
                 }
                 
                 if(messageId != null){
                     targetChannel.retrieveMessageById(messageId)
-                        .flatMap(msg -> msg.editMessage(builder.build()).setEmbeds(Collections.emptyList()))
+                        .flatMap(msg -> msg.editMessage(builder.build()).override(true))
                         .queue(
                             m -> CommandUtil.EmbedReply.fromHook(hook)
                                 .withMessage("Successfully [edited message](" + m.getJumpUrl() + ")!")
                                 .asSuccess()
                                 .send(),
                             e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withError(
-                                    "Unable to edit message. Was it even from me?",
+                                .withIssue(
+                                    "Cannot edit provided Message. Is it even one of my own?",
                                     "",
-                                    "Error response: " + e.getMessage()
+                                    "Error response: `" + e.getMessage() + "`"
                                 )
                                 .send()
                         );
