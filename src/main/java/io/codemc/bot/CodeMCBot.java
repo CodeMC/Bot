@@ -26,6 +26,7 @@ import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.commands.CmdDisable;
 import io.codemc.bot.commands.CmdMsg;
 import io.codemc.bot.commands.CmdSubmit;
+import io.codemc.bot.events.MessageEvents;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -73,7 +74,8 @@ public class CodeMCBot{
                 "Applications"
             )).addEventListeners(
                 commandClient,
-                eventWaiter
+                eventWaiter, 
+                new MessageEvents()
             ).build();
     }
 }

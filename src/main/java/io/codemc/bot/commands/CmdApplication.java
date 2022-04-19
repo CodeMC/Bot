@@ -20,12 +20,12 @@ package io.codemc.bot.commands;
 
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -38,7 +38,7 @@ import java.util.*;
 
 public class CmdApplication extends SlashCommand{
     
-    private static final Logger LOG = (Logger)LoggerFactory.getLogger(CmdApplication.class);
+    private static final Logger logger = (Logger)LoggerFactory.getLogger("Application Manager");
     
     public CmdApplication(){
         
@@ -144,14 +144,20 @@ public class CmdApplication extends SlashCommand{
             channel.sendMessage(getMessage(userId, userLink, repoLink, accepted ? projectUrl : str, accepted)).queue(m -> {
                 message.delete().queue(
                     null,
-                    e -> LOG.warn("Unable to delete message in request-access!")
+                    e -> logger.warn("Unable to delete message in request-access!")
                 );
-    
+                
+                User executor = hook.getInteraction().getUser();
+                User user = hook.getJDA().getUserById(userId);
+                String userTag = user == null ? "Unknown" : user.getAsTag();
+                
                 if(!accepted){
                     CommandUtil.EmbedReply.fromHook(hook)
                         .withMessage("Denied Application!")
                         .asSuccess()
                         .send();
+                    
+                    logger.info("{} denied application of {}.", executor.getAsTag(), userTag);
                     return;
                 }
                 
@@ -161,11 +167,20 @@ public class CmdApplication extends SlashCommand{
                         .withMessage("Accepted Application!")
                         .withIssue("Could not apply Author role to user. Role not found!")
                         .send();
+                    
+                    logger.info("{} accepted application of {}", executor.getAsTag(), userTag);
                     return;
                 }
                 
-                guild.addRoleToMember(userId, authorRole).reason("[Access Applications] Application of user accepted.").queue(
-                    v -> CommandUtil.EmbedReply.fromHook(hook).withMessage("Accepted Application!").asSuccess().send(),
+                guild.addRoleToMember(User.fromId(userId), authorRole).reason("[Access Applications] Application of user accepted.").queue(
+                    v -> {
+                        CommandUtil.EmbedReply.fromHook(hook)
+                            .withMessage("Accepted Application!")
+                            .asSuccess()
+                            .send();
+    
+                        logger.info("{} accepted application of {}", executor.getAsTag(), userTag);
+                    },
                     new ErrorHandler()
                         .handle(
                             ErrorResponse.MISSING_PERMISSIONS,

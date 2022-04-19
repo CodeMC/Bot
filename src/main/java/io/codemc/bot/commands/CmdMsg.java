@@ -18,18 +18,20 @@
 
 package io.codemc.bot.commands;
 
+import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 import static io.codemc.bot.CodeMCBot.eventWaiter;
 
 public class CmdMsg extends SlashCommand{
+    
+    private static final Logger logger = (Logger)LoggerFactory.getLogger("Message Handler");
     
     public CmdMsg(){
         this.name = "msg";
@@ -81,7 +85,7 @@ public class CmdMsg extends SlashCommand{
         }
     
         Guild guild = targetChannel.getGuild();
-        if(CommandUtil.lackPerms(event, guild, targetChannel, Permission.MESSAGE_WRITE, Permission.MESSAGE_HISTORY))
+        if(CommandUtil.lackPerms(event, guild, targetChannel, Permission.MESSAGE_SEND, Permission.MESSAGE_HISTORY))
             return;
         
         if(isEmbed && CommandUtil.lackPerms(event, guild, targetChannel, Permission.MESSAGE_EMBED_LINKS))
@@ -97,9 +101,11 @@ public class CmdMsg extends SlashCommand{
     private static void handleResponse(InteractionHook hook, TextChannel targetChannel, boolean isEmbed, String currentChannelId,
                                        String userId, String messageId){
         eventWaiter.waitForEvent(
-            GuildMessageReceivedEvent.class,
+            MessageReceivedEvent.class,
             event -> {
-    
+                if(!event.isFromGuild())
+                    return false;
+                
                 User user = event.getAuthor();
                 if(!user.getId().equals(userId) || user.isBot())
                     return false;
@@ -112,6 +118,7 @@ public class CmdMsg extends SlashCommand{
             },
             event -> {
                 String message = event.getMessage().getContentRaw();
+                User user = event.getAuthor();
                 
                 MessageBuilder builder = new MessageBuilder();
                 if(isEmbed){
@@ -135,6 +142,8 @@ public class CmdMsg extends SlashCommand{
                                     .asSuccess()
                                     .send();
                                 event.getMessage().addReaction("✅").queue();
+                                
+                                logger.info("{} edited a message with ID {}", user.getAsTag(), messageId);
                             },
                             e -> {
                                 CommandUtil.EmbedReply.fromHook(hook)
@@ -155,6 +164,8 @@ public class CmdMsg extends SlashCommand{
                                 .asSuccess()
                                 .send();
                             event.getMessage().addReaction("✅").queue();
+                            
+                            logger.info("{} send a message through the bot in {}.", user.getAsTag(), event.getTextChannel().getName());
                         },
                         e -> {
                             CommandUtil.EmbedReply.fromHook(hook)

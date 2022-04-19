@@ -19,11 +19,11 @@
 package io.codemc.bot.utils;
 
 import ch.qos.logback.classic.Logger;
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.slf4j.LoggerFactory;
@@ -125,10 +125,6 @@ public class CommandUtil{
         
         public EmbedReply withIssue(String... lines){
             builder.setColor(0xFFC800)
-                .setDescription(
-                    "There was an issue while handling the command.\n" +
-                    "If this issue persists, report it to Andre_601#0601"
-                )
                 .addField("Warning:", String.join("\n", lines), false);
             return this;
         }

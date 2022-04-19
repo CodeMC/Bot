@@ -20,17 +20,17 @@ package io.codemc.bot.commands;
 
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import okhttp3.HttpUrl;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ import static io.codemc.bot.CodeMCBot.eventWaiter;
 
 public class CmdSubmit extends SlashCommand{
     
-    private final Logger LOG = (Logger)LoggerFactory.getLogger(CmdSubmit.class);
+    private final Logger logger = (Logger)LoggerFactory.getLogger("Application Manager");
     
     public CmdSubmit(){
         this.name = "submit";
@@ -206,7 +206,7 @@ public class CmdSubmit extends SlashCommand{
     
     private void handleButtons(Message message, User user, Guild guild, MessageEmbed embed, InteractionHook hook){
         eventWaiter.waitForEvent(
-            ButtonClickEvent.class,
+            ButtonInteractionEvent.class,
             event -> {
                 if(event.getUser().isBot())
                     return false;
@@ -230,7 +230,7 @@ public class CmdSubmit extends SlashCommand{
                         ).setActionRows(Collections.emptyList())
                         .queue(
                             null,
-                            e -> LOG.warn("Unable to edit own message in User DMs.")
+                            e -> logger.warn("Unable to edit own message in User DMs.")
                         )
                     );
                     return;
@@ -251,7 +251,7 @@ public class CmdSubmit extends SlashCommand{
                     ).setActionRows(Collections.emptyList())
                     .queue(
                         null,
-                        e -> LOG.warn("Unable to edit own message in User DMs.")
+                        e -> logger.warn("Unable to edit own message in User DMs.")
                     );
                     return;
                 }
@@ -260,17 +260,21 @@ public class CmdSubmit extends SlashCommand{
                     m.addReaction("like:935126958193405962").queue();
                     m.addReaction("dislike:935126958235344927").queue();
                     
+                    m.createThreadChannel("Access Request - " + user.getName()).queue();
+                    
+                    logger.info("{} submited a new Application.", user.getAsTag());
+                    
                     message.editMessage(
                         "Submission completed! You can close these DMs now."
                     ).setActionRows(Collections.emptyList())
                     .queue(
                         null,
-                        e -> LOG.warn("Unable to edit own message in User DMs.")
+                        e -> logger.warn("Unable to edit own message in User DMs.")
                     );
                     
                     hook.editOriginal("Submission completed! You can delete this message now.").queue(
                         null,
-                        e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
+                        e -> logger.warn("Unable to edit original command response! Did the user delete it?")
                     );
                 });
             },
@@ -280,13 +284,13 @@ public class CmdSubmit extends SlashCommand{
                     .setActionRows(Collections.emptyList())
                     .queue(
                         null, 
-                        e -> LOG.warn("Unable to edit own message in User DMs.")
+                        e -> logger.warn("Unable to edit own message in User DMs.")
                     );
                 
                 hook.editOriginal("Interaction Timed out!")
                     .queue(
                         null, 
-                        e -> LOG.warn("Unable to edit original command response! Did the user delete it?")
+                        e -> logger.warn("Unable to edit original command response! Did the user delete it?")
                     );
             }
         );
