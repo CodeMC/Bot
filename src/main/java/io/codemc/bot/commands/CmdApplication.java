@@ -148,7 +148,7 @@ public class CmdApplication extends SlashCommand{
                         .reason("[Thread Manager] Archiving Thread of deleted suggestion.")
                         .queue(
                             t -> logger.info("Archived thread {} for message {}.", thread.getName(), message.getId()),
-                            e -> logger.warn("Unable to arhive thread {}. Reason: {}", thread.getName(), e.getMessage())
+                            e -> logger.warn("Unable to archive thread {}. Reason: {}", thread.getName(), e.getMessage())
                         );
                 }
                 
