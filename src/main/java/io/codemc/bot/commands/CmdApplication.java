@@ -142,6 +142,16 @@ public class CmdApplication extends SlashCommand{
             }
             
             channel.sendMessage(getMessage(userId, userLink, repoLink, accepted ? projectUrl : str, accepted)).queue(m -> {
+                ThreadChannel thread = message.getStartedThread();
+                if(thread != null && !thread.isArchived()){
+                    thread.getManager().setArchived(true)
+                        .reason("[Thread Manager] Archiving Thread of deleted suggestion.")
+                        .queue(
+                            t -> logger.info("Archived thread {} for message {}.", thread.getName(), message.getId()),
+                            e -> logger.warn("Unable to arhive thread {}. Reason: {}", thread.getName(), e.getMessage())
+                        );
+                }
+                
                 message.delete().queue(
                     null,
                     e -> logger.warn("Unable to delete message in request-access!")
