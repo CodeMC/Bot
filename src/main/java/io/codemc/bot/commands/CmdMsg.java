@@ -22,11 +22,11 @@ import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -45,11 +45,9 @@ public class CmdMsg extends SlashCommand{
     public CmdMsg(){
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
-        
-        this.defaultEnabled = false;
-        this.enabledRoles = new String[]{
-            Constants.ADMINISTRATOR,
-            Constants.MODERATOR
+    
+        this.userPermissions = new Permission[]{
+            Permission.MANAGE_SERVER
         };
         
         this.children = new SlashCommand[]{
@@ -141,7 +139,7 @@ public class CmdMsg extends SlashCommand{
                                     .withMessage("Successfully [edited message](" + m.getJumpUrl() + ")!")
                                     .asSuccess()
                                     .send();
-                                event.getMessage().addReaction("✅").queue();
+                                event.getMessage().addReaction(Emoji.fromUnicode("✅")).queue();
                                 
                                 logger.info("{} edited a message with ID {}", user.getAsTag(), messageId);
                             },
@@ -153,7 +151,7 @@ public class CmdMsg extends SlashCommand{
                                         "Reason: `" + e.getMessage() + "`"
                                     )
                                     .send();
-                                event.getMessage().addReaction("❌").queue();
+                                event.getMessage().addReaction(Emoji.fromUnicode("❌")).queue();
                             }
                         );
                 }else{
@@ -163,9 +161,9 @@ public class CmdMsg extends SlashCommand{
                                 .withMessage("Successfully [send new Message](" + m.getJumpUrl() + ")!")
                                 .asSuccess()
                                 .send();
-                            event.getMessage().addReaction("✅").queue();
+                            event.getMessage().addReaction(Emoji.fromUnicode("✅")).queue();
                             
-                            logger.info("{} send a message through the bot in {}.", user.getAsTag(), event.getTextChannel().getName());
+                            logger.info("{} send a message through the bot in {}.", user.getAsTag(), event.getChannel().getName());
                         },
                         e -> {
                             CommandUtil.EmbedReply.fromHook(hook)
@@ -175,7 +173,7 @@ public class CmdMsg extends SlashCommand{
                                     "Reason: `" + e.getMessage() + "`"
                                 )
                                 .send();
-                            event.getMessage().addReaction("❌").queue();
+                            event.getMessage().addReaction(Emoji.fromUnicode("❌")).queue();
                         }
                     );
                 }
@@ -190,11 +188,9 @@ public class CmdMsg extends SlashCommand{
         public Send(){
             this.name = "send";
             this.help = "Sends a message or embed to a specific channel";
-            
-            this.defaultEnabled = false;
-            this.enabledRoles = new String[]{
-                Constants.ADMINISTRATOR,
-                Constants.MODERATOR
+    
+            this.userPermissions = new Permission[]{
+                Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(
@@ -217,11 +213,9 @@ public class CmdMsg extends SlashCommand{
         public Edit(){
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
-            
-            this.defaultEnabled = false;
-            this.enabledRoles = new String[]{
-                Constants.ADMINISTRATOR,
-                Constants.MODERATOR
+    
+            this.userPermissions = new Permission[]{
+                Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(

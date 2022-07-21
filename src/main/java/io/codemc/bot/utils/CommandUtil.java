@@ -55,7 +55,7 @@ public class CommandUtil{
         if(mapping == null)
             return null;
         
-        return (TextChannel)mapping.getAsGuildChannel();
+        return mapping.getAsChannel().asTextChannel();
     }
     
     public static  boolean lackPerms(SlashCommandEvent event, Guild guild, TextChannel tc, Permission... permissions){

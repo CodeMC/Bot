@@ -25,6 +25,7 @@ import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -44,11 +45,9 @@ public class CmdApplication extends SlashCommand{
         
         this.name = "application";
         this.help = "Accept or deny applications.";
-    
-        this.defaultEnabled = false;
-        this.enabledRoles = new String[]{
-            Constants.ADMINISTRATOR,
-            Constants.MODERATOR
+        
+        this.userPermissions = new Permission[]{
+            Permission.MANAGE_SERVER
         };
         
         this.children = new SlashCommand[]{
@@ -171,7 +170,7 @@ public class CmdApplication extends SlashCommand{
                     return;
                 }
                 
-                Role authorRole = guild.getRoleById(Constants.AUTHOR);
+                Role authorRole = guild.getRoleById(Constants.ROLE_AUTHOR);
                 if(authorRole == null){
                     CommandUtil.EmbedReply.fromHook(hook)
                         .withMessage("Accepted Application!")
@@ -258,11 +257,9 @@ public class CmdApplication extends SlashCommand{
         public Accept(){
             this.name = "accept";
             this.help = "Accept an application.";
-    
-            this.defaultEnabled = false;
-            this.enabledRoles = new String[]{
-                Constants.ADMINISTRATOR,
-                Constants.MODERATOR
+            
+            this.userPermissions = new Permission[]{
+                Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(
@@ -292,11 +289,9 @@ public class CmdApplication extends SlashCommand{
         public Deny(){
             this.name = "deny";
             this.help = "Deny an application.";
-            
-            this.defaultEnabled = false;
-            this.enabledRoles = new String[]{
-                Constants.ADMINISTRATOR,
-                Constants.MODERATOR
+    
+            this.userPermissions = new Permission[]{
+                Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(

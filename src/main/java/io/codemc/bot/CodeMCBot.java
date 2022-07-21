@@ -67,7 +67,10 @@ public class CodeMCBot{
             .build();
         
         JDABuilder.createDefault(token)
-            .enableIntents(GatewayIntent.GUILD_MEMBERS)
+            .enableIntents(
+                GatewayIntent.GUILD_MEMBERS,
+                GatewayIntent.MESSAGE_CONTENT
+            )
             .setActivity(Activity.of(
                 Activity.ActivityType.WATCHING,
                 "Applications"

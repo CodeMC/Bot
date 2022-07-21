@@ -29,9 +29,7 @@ public class Constants{
     public static final String REJECTED_REQUESTS = "800423355551449098";
     
     // Role IDs
-    public static final String ADMINISTRATOR = "405917902865170453";
-    public static final String MODERATOR     = "659568973079379971";
-    public static final String AUTHOR        = "405918641859723294";
+    public static final String ROLE_AUTHOR = "405918641859723294";
     
     // Result messages for applications
     public static final String ACCEPTED_MSG =
@@ -41,8 +39,8 @@ public class Constants{
         "Remember to [visit our Documentation](https://docs.codemc.io) and [read our FAQ](https://docs.codemc.io/faq) " +
         "to know how to setup automatic builds!";
     public static final String REJECTED_MSG =
-        "Your request has unfortunately been **rejected**.\n" +
-        "Please see the below listed reason for why.\n" +
+        "Your request has been **rejected**.\n" +
+        "The reason for this can be found below.\n" +
         "\n" +
         "You may re-apply for access unless mentioned so in the reason.";
 }

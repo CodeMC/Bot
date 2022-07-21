@@ -21,7 +21,7 @@ package io.codemc.bot.commands;
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-import io.codemc.bot.utils.Constants;
+import net.dv8tion.jda.api.Permission;
 import org.slf4j.LoggerFactory;
 
 public class CmdDisable extends SlashCommand{
@@ -31,11 +31,9 @@ public class CmdDisable extends SlashCommand{
     public CmdDisable(){
         this.name = "disable";
         this.help = "Disables the bot.";
-        
-        this.defaultEnabled = false;
-        this.enabledRoles = new String[]{
-            Constants.ADMINISTRATOR,
-            Constants.MODERATOR
+    
+        this.userPermissions = new Permission[]{
+            Permission.MANAGE_SERVER
         };
     }
     

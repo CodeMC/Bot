@@ -25,6 +25,7 @@ import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -257,8 +258,8 @@ public class CmdSubmit extends SlashCommand{
                 }
                 
                 apply.sendMessageEmbeds(embed).queue(m -> {
-                    m.addReaction("like:935126958193405962").queue();
-                    m.addReaction("dislike:935126958235344927").queue();
+                    m.addReaction(Emoji.fromFormatted("like:935126958193405962")).queue();
+                    m.addReaction(Emoji.fromFormatted("dislike:935126958235344927")).queue();
                     
                     m.createThreadChannel("Access Request - " + user.getName()).queue();
                     
