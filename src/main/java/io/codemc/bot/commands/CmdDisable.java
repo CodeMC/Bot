@@ -18,15 +18,15 @@
 
 package io.codemc.bot.commands;
 
-import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.Permission;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CmdDisable extends SlashCommand{
     
-    private final Logger logger = (Logger)LoggerFactory.getLogger("Shutdown");
+    private final Logger logger = LoggerFactory.getLogger("Shutdown");
     
     public CmdDisable(){
         this.name = "disable";
@@ -40,7 +40,7 @@ public class CmdDisable extends SlashCommand{
     @Override
     protected void execute(SlashCommandEvent event){
         event.reply("Disabling bot...").setEphemeral(true).queue(m -> {
-            logger.info("Received disable command by {}.", event.getUser().getAsTag());
+            logger.info("Received disable command by {}.", event.getUser().getEffectiveName());
             logger.info("Disabling bot...");
             System.exit(0);
         });

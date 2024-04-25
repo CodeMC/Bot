@@ -18,31 +18,30 @@
 
 package io.codemc.bot.commands;
 
-import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import okhttp3.HttpUrl;
-import org.slf4j.LoggerFactory;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class CmdApplication extends SlashCommand{
     
-    private static final Logger logger = (Logger)LoggerFactory.getLogger("Application Manager");
-    
     public CmdApplication(){
-        
         this.name = "application";
         this.help = "Accept or deny applications.";
         
@@ -59,56 +58,40 @@ public class CmdApplication extends SlashCommand{
     @Override
     protected void execute(SlashCommandEvent event){}
     
-    private static void handleResponse(InteractionHook hook, String id, String str, boolean accepted){
-        Guild guild = hook.getJDA().getGuildById(Constants.SERVER);
-        if(guild == null){
-            CommandUtil.EmbedReply.fromHook(hook)
-                .withError("Unable to retrieve CodeMC Sevrer.")
-                .send();
+    private static void handle(InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
+        if(guild == null || !guild.getId().equals(Constants.SERVER)){
+            CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve Server!").send();
             return;
         }
         
-        TextChannel requestAccess = guild.getTextChannelById(Constants.REQUEST_ACCESS);
-        if(requestAccess == null){
-            CommandUtil.EmbedReply.fromHook(hook)
-                .withError("Could not get the #request-access channel from the Server.")
-                .send();
+        TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
+        if(requestChannel == null){
+            CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve `request-access` channel.").send();
             return;
         }
         
-        String projectUrl = getProjectUrlString(str);
-        if(projectUrl == null && accepted){
-            CommandUtil.EmbedReply.fromHook(hook)
-                .withError("The provided Project URL is not a valid URL format.")
-                .send();
-            return;
-        }
-        
-        requestAccess.retrieveMessageById(id).queue(message -> {
-            List<MessageEmbed> embeds = new ArrayList<>(message.getEmbeds());
+        requestChannel.retrieveMessageById(messageId).queue(message -> {
+            List<MessageEmbed> embeds = message.getEmbeds();
             if(embeds.isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("The retrieved message does not have any Embeds attached.")
-                    .send();
+                CommandUtil.EmbedReply.fromHook(hook).withError("Provided message does not have any embeds.").send();
                 return;
             }
-    
-            MessageEmbed embed = embeds.get(0);
             
+            MessageEmbed embed = embeds.get(0);
             if(embed.getFooter() == null || embed.getFields().isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("The Embed does not have a footer or any Embed Fields set.")
-                    .send();
+                CommandUtil.EmbedReply.fromHook(hook).withError(
+                    "Embed does not have a footer or any Embed Fields."
+                ).send();
                 return;
             }
             
             String userId = embed.getFooter().getText();
             if(userId == null || userId.isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("The Embed does not have a valid footer.")
-                    .send();
+                CommandUtil.EmbedReply.fromHook(hook).withError("Embed does not have a valid footer.").send();
                 return;
             }
+            
+            System.out.println("Embed Footer text: " + userId);
             
             String userLink = null;
             String repoLink = null;
@@ -125,162 +108,131 @@ public class CmdApplication extends SlashCommand{
             }
             
             if(userLink == null || repoLink == null){
-                CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("The Embed does not have valid Embed fields.")
-                    .send();
+                CommandUtil.EmbedReply.fromHook(hook).withError("Embed does not have any valid Fields.").send();
                 return;
             }
             
-            String channelId = accepted ? Constants.ACCEPTED_REQUESTS : Constants.REJECTED_REQUESTS;
-            TextChannel channel = guild.getTextChannelById(channelId);
+            TextChannel channel = guild.getTextChannelById(accepted ? Constants.ACCEPTED_REQUESTS : Constants.REJECTED_REQUESTS);
             if(channel == null){
                 CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("Could not get " + (accepted ? "#accepted-requests" : "#rejected-requests") + " channel.")
+                    .withError("Unable to retrieve `" + (accepted ? "accepted" : "rejected") + "-requests` channel.")
                     .send();
                 return;
             }
             
-            channel.sendMessage(getMessage(userId, userLink, repoLink, accepted ? projectUrl : str, accepted)).queue(m -> {
+            channel.sendMessage(getMessage(userId, userLink, repoLink, str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
                     thread.getManager().setArchived(true)
-                        .reason("[Thread Manager] Archiving Thread of deleted suggestion.")
-                        .queue(
-                            t -> logger.info("Archived thread {} for message {}.", thread.getName(), message.getId()),
-                            e -> logger.warn("Unable to archive thread {}. Reason: {}", thread.getName(), e.getMessage())
-                        );
+                        .reason("Archiving Thread of deleted Request message.")
+                        .queue();
                 }
                 
-                message.delete().queue(
-                    null,
-                    e -> logger.warn("Unable to delete message in request-access!")
-                );
+                message.delete().queue();
                 
-                User executor = hook.getInteraction().getUser();
-                User user = hook.getJDA().getUserById(userId);
-                String userTag = user == null ? "Unknown" : user.getAsTag();
+                Member member = guild.getMemberById(userId);
                 
                 if(!accepted){
                     CommandUtil.EmbedReply.fromHook(hook)
-                        .withMessage("Denied Application!")
+                        .withMessage("Denied Application of " + (member == null ? "Unknown" : member.getUser().getEffectiveName()) + "!")
                         .asSuccess()
                         .send();
-                    
-                    logger.info("{} denied application of {}.", executor.getAsTag(), userTag);
                     return;
                 }
                 
                 Role authorRole = guild.getRoleById(Constants.ROLE_AUTHOR);
                 if(authorRole == null){
                     CommandUtil.EmbedReply.fromHook(hook)
-                        .withMessage("Accepted Application!")
-                        .withIssue("Could not apply Author role to user. Role not found!")
+                        .withError("Unable to retrieve Author Role!")
                         .send();
-                    
-                    logger.info("{} accepted application of {}", executor.getAsTag(), userTag);
                     return;
                 }
                 
-                guild.addRoleToMember(User.fromId(userId), authorRole).reason("[Access Applications] Application of user accepted.").queue(
-                    v -> {
-                        CommandUtil.EmbedReply.fromHook(hook)
-                            .withMessage("Accepted Application!")
+                if(member == null){
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError("Unable to apply Role. Member not found!")
+                        .send();
+                    return;
+                }
+                
+                guild.addRoleToMember(member, authorRole)
+                    .reason("[Access Request] Application accepted.")
+                    .queue(
+                        v -> CommandUtil.EmbedReply.fromHook(hook)
+                            .withMessage("Accepted application of " + member.getUser().getEffectiveName() + "!")
                             .asSuccess()
-                            .send();
-    
-                        logger.info("{} accepted application of {}", executor.getAsTag(), userTag);
-                    },
-                    new ErrorHandler()
-                        .handle(
-                            ErrorResponse.MISSING_PERMISSIONS,
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withMessage("Accepted Application!")
-                                .withIssue("I lack the `Manage Roles` permission to apply the Author role.")
-                                .send()
-                        ).handle(
-                            ErrorResponse.UNKNOWN_MEMBER,
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withMessage("Accepted Application!")
-                                .withIssue("Member was not found in the CodeMC Server.")
-                                .send()
-                        ).handle(
-                            ErrorResponse.UNKNOWN_ROLE,
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withMessage("Accepted Application!")
-                                .withIssue("The Author Role was not found.")
-                                .send()
-                        )
-                );
-            }, e -> CommandUtil.EmbedReply.fromHook(hook).withError("Cannot send message to channel.").send());
-        }, e -> CommandUtil.EmbedReply.fromHook(hook).withError("Cannot retrieve message from #request-access.").send());
+                            .send(),
+                        new ErrorHandler()
+                            .handle(
+                                ErrorResponse.MISSING_PERMISSIONS,
+                                e -> CommandUtil.EmbedReply.fromHook(hook)
+                                    .withIssue("I lack the `Manage Roles` permission to apply the role.")
+                                    .send()
+                            )
+                    );
+            });
+        });
     }
     
-    private static Message getMessage(String userId, String userLink, String repoLink, String str, boolean accepted){
-        EmbedBuilder embed = new EmbedBuilder()
+    private static MessageCreateData getMessage(String userId, String userLink, String repoLink, String str, boolean accepted){
+        MessageEmbed embed = new EmbedBuilder()
             .setColor(accepted ? 0x00FF00 : 0xFF0000)
             .setDescription(accepted ? Constants.ACCEPTED_MSG : Constants.REJECTED_MSG)
-            .addField(
-                "user/organisation:",
-                userLink,
-                true
-            ).addField(
-                "Repository:",
-                repoLink,
-                true
-            ).addField(
-                accepted ? "New Project:" : "Reason:",
-                str,
-                false
-            );
-        
-        return new MessageBuilder("<@" + userId + ">")
-            .setEmbeds(embed.build())
+            .addField("User/Organisation:", userLink, true)
+            .addField("Repository:", repoLink, true)
+            .addField(accepted ? "New Project:" : "Reason:", str, false)
             .build();
-    }
-    
-    private static String getProjectUrlString(String url){
-        HttpUrl projectUrl = HttpUrl.parse(url);
         
-        if(projectUrl == null)
-            return null;
-        
-        return String.format(
-            "[`%s%s`](%s)",
-            projectUrl.host(),
-            projectUrl.encodedPath(),
-            url
-        );
+        return new MessageCreateBuilder()
+            .addContent("<@" + userId + ">")
+            .setEmbeds(embed)
+            .build();
     }
     
     private static class Accept extends SlashCommand{
         
+        private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
+        
         public Accept(){
             this.name = "accept";
-            this.help = "Accept an application.";
+            this.help = "Accept an application";
             
             this.userPermissions = new Permission[]{
                 Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message ID of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "project-url", "The Project URL to mention.").setRequired(true)
+                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
+                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true)
             );
         }
-    
+        
         @Override
         protected void execute(SlashCommandEvent event){
-            String messageId = CommandUtil.getString(event, "id");
-            String url = CommandUtil.getString(event, "project-url");
+            long messageId = event.getOption("id", -1L, option -> {
+                try{
+                    return Long.parseLong(option.getAsString());
+                }catch(NumberFormatException ex){
+                    return -1L;
+                }
+            });
+            String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
             
-            if(messageId == null || url == null){
-                CommandUtil.EmbedReply.fromEvent(event).withError("Message ID or Project URL was null.").send();
+            if(messageId == -1L || projectUrl == null){
+                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                    "Message ID or Project URL were not present!"
+                ).send();
                 return;
             }
             
-            event.deferReply(true).queue(
-                hook -> handleResponse(hook, messageId, url, true)
-            );
+            if(!projectUrlPattern.matcher(projectUrl).matches()){
+                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                    "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!"
+                ).send();
+                return;
+            }
+            
+            event.deferReply(true).queue(hook -> handle(hook, event.getGuild(), messageId, projectUrl, true));
         }
     }
     
@@ -288,31 +240,37 @@ public class CmdApplication extends SlashCommand{
         
         public Deny(){
             this.name = "deny";
-            this.help = "Deny an application.";
-    
+            this.help = "Deny an application";
+            
             this.userPermissions = new Permission[]{
                 Permission.MANAGE_SERVER
             };
             
             this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message ID of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "reason", "The reason of the denial.").setRequired(true)
+                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
+                new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
             );
         }
-    
+        
         @Override
         protected void execute(SlashCommandEvent event){
-            String messageId = CommandUtil.getString(event, "id");
-            String reason = CommandUtil.getString(event, "reason");
+            long messageId = event.getOption("id", -1L, option -> {
+                try{
+                    return Long.parseLong(option.getAsString());
+                }catch(NumberFormatException ex){
+                    return -1L;
+                }
+            });
+            String reason = event.getOption("reason", null, OptionMapping::getAsString);
             
-            if(messageId == null || reason == null){
-                CommandUtil.EmbedReply.fromEvent(event).withError("Message ID or Reason was null.").send();
+            if(messageId == -1L || reason == null){
+                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                    "Message ID or Reason were not present!"
+                ).send();
                 return;
             }
-    
-            event.deferReply(true).queue(
-                hook -> handleResponse(hook, messageId, reason, false)
-            );
+            
+            event.deferReply(true).queue(hook -> handle(hook, event.getGuild(), messageId, reason, false));
         }
     }
 }

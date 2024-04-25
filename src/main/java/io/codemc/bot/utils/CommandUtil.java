@@ -23,7 +23,8 @@ import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.slf4j.LoggerFactory;
@@ -34,68 +35,40 @@ public class CommandUtil{
     
     public CommandUtil(){}
     
-    public static String getString(SlashCommandEvent event, String key){
-        OptionMapping mapping = event.getOption(key);
-        if(mapping == null)
-            return null;
-        
-        return mapping.getAsString();
-    }
-    
-    public static boolean getBoolean(SlashCommandEvent event, String key, boolean def){
-        OptionMapping mapping = event.getOption(key);
-        if(mapping == null)
-            return def;
-        
-        return mapping.getAsBoolean();
-    }
-    
-    public static TextChannel getChannel(SlashCommandEvent event, String key){
-        OptionMapping mapping = event.getOption(key);
-        if(mapping == null)
-            return null;
-        
-        return mapping.getAsChannel().asTextChannel();
-    }
-    
-    public static  boolean lackPerms(SlashCommandEvent event, Guild guild, TextChannel tc, Permission... permissions){
-        for(Permission permission : permissions){
-            if(!guild.getSelfMember().hasPermission(tc, permission)){
-                EmbedReply.fromEvent(event)
-                    .withError(String.format(
-                        "I lack the `%s` permission for %s",
-                        permission.getName(),
-                        tc.getAsMention()
-                    ))
-                    .send();
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
     public static EmbedBuilder getEmbed(){
         return new EmbedBuilder().setColor(0x0172BA);
     }
     
     public static class EmbedReply {
         
+        private final SlashCommandEvent commandEvent;
+        private final ModalInteractionEvent modalEvent;
         private final InteractionHook hook;
-        private final SlashCommandEvent event;
         private final EmbedBuilder builder = new EmbedBuilder();
         
-        private EmbedReply(SlashCommandEvent event){
-            this.event = event;
+        private EmbedReply(SlashCommandEvent commandEvent){
+            this.commandEvent = commandEvent;
+            this.modalEvent = null;
             this.hook = null;
         }
         
         private EmbedReply(InteractionHook hook){
-            this.event = null;
+            this.commandEvent = null;
+            this.modalEvent = null;
             this.hook = hook;
         }
         
-        public static EmbedReply fromEvent(SlashCommandEvent event){
+        private EmbedReply(ModalInteractionEvent modalEvent){
+            this.commandEvent = null;
+            this.modalEvent = modalEvent;
+            this.hook = null;
+        }
+        
+        public static EmbedReply fromCommandEvent(SlashCommandEvent event){
+            return new EmbedReply(event);
+        }
+        
+        public static EmbedReply fromModalEvent(ModalInteractionEvent event){
             return new EmbedReply(event);
         }
         
@@ -130,13 +103,16 @@ public class CommandUtil{
         }
         
         public void send(){
-            if(event != null){
-                event.replyEmbeds(builder.build()).queue();
+            if(commandEvent != null){
+                commandEvent.replyEmbeds(builder.build()).queue();
+            }else
+            if(modalEvent != null){
+                modalEvent.replyEmbeds(builder.build()).queue();
             }else
             if(hook != null){
                 hook.editOriginalEmbeds(builder.build()).queue();
             }else{
-                LOG.error("Received EmbedReply class with neither SlashCommandEvent nor InteractionHook set!");
+                LOG.error("Received EmbedReply class with neither SlashCommandEvent, ModalInteractionEvent nor InteractionHook set!");
             }
         }
     }

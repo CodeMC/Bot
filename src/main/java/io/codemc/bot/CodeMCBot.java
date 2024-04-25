@@ -18,27 +18,26 @@
 
 package io.codemc.bot;
 
-import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.CommandClient;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
-import com.jagrosh.jdautilities.commons.waiter.EventWaiter;
 import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.commands.CmdDisable;
 import io.codemc.bot.commands.CmdMsg;
 import io.codemc.bot.commands.CmdSubmit;
+import io.codemc.bot.listeners.ModalListener;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
 
 public class CodeMCBot{
     
-    private final Logger LOG = (Logger)LoggerFactory.getLogger(CodeMCBot.class);
-    
-    public static final EventWaiter eventWaiter = new EventWaiter();
+    private final Logger LOG = LoggerFactory.getLogger(CodeMCBot.class);
     
     public static void main(String[] args){
         try{
@@ -69,14 +68,18 @@ public class CodeMCBot{
         JDABuilder.createDefault(token)
             .enableIntents(
                 GatewayIntent.GUILD_MEMBERS,
+                GatewayIntent.GUILD_MESSAGES,
                 GatewayIntent.MESSAGE_CONTENT
             )
+            .setMemberCachePolicy(MemberCachePolicy.ALL)
             .setActivity(Activity.of(
                 Activity.ActivityType.WATCHING,
                 "Applications"
-            )).addEventListeners(
+            ))
+            .addEventListeners(
                 commandClient,
-                eventWaiter
-            ).build();
+                new ModalListener()
+            )
+            .build();
     }
 }
