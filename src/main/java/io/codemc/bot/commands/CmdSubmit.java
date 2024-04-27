@@ -18,23 +18,30 @@
 
 package io.codemc.bot.commands;
 
-import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
-public class CmdSubmit extends SlashCommand{
+public class CmdSubmit extends BotCommand{
     
     public CmdSubmit(){
         this.name = "submit";
         this.help = "Submit a request to join the CodeMC CI with a project.";
+        
+        this.hasModalReply = true;
     }
     
     @Override
-    protected void execute(SlashCommandEvent event){
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
+    
+    @Override
+    public void withModalReply(SlashCommandEvent event){
         TextInput userLink = TextInput.create("userlink", "User Link", TextInputStyle.SHORT)
             .setPlaceholder("https://github.com/CodeMC")
             .setRequired(true)

@@ -29,7 +29,10 @@ public class Constants{
     public static final String REJECTED_REQUESTS = "800423355551449098";
     
     // Role IDs
-    public static final String ROLE_AUTHOR = "405918641859723294";
+    public static final long ROLE_ADMINISTRATOR = 405917902865170453L;
+    public static final long ROLE_MODERATOR     = 659568973079379971L;
+    public static final long ROLE_CONTRIBUTOR   = 1233119938621997097L;
+    public static final long ROLE_AUTHOR        = 405918641859723294L;
     
     // Result messages for applications
     public static final String ACCEPTED_MSG =

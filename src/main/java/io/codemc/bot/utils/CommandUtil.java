@@ -100,10 +100,10 @@ public class CommandUtil{
         
         public void send(){
             if(commandEvent != null){
-                commandEvent.replyEmbeds(builder.build()).queue();
+                commandEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
             if(modalEvent != null){
-                modalEvent.replyEmbeds(builder.build()).queue();
+                modalEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
             if(hook != null){
                 hook.editOriginalEmbeds(builder.build()).queue();

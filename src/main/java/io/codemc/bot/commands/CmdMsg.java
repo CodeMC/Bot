@@ -21,11 +21,14 @@ package io.codemc.bot.commands;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
-import net.dv8tion.jda.api.Permission;
+import io.codemc.bot.utils.Constants;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -35,16 +38,17 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.util.Arrays;
+import java.util.Collections;
 
-public class CmdMsg extends SlashCommand{
+public class CmdMsg extends BotCommand{
     
     public CmdMsg(){
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
-    
-        this.userPermissions = new Permission[]{
-            Permission.MANAGE_SERVER
-        };
+        
+        this.allowedRoles = Collections.singletonList(
+            Constants.ROLE_ADMINISTRATOR
+        );
         
         this.children = new SlashCommand[]{
             new Post(),
@@ -53,17 +57,21 @@ public class CmdMsg extends SlashCommand{
     }
     
     @Override
-    protected void execute(SlashCommandEvent event){}
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
-    private static class Post extends SlashCommand{
+    @Override
+    public void withModalReply(SlashCommandEvent event){}
+    
+    private static class Post extends BotCommand{
         
         public Post(){
             this.name = "send";
             this.help = "Sends a message as the Bot.";
             
-            this.userPermissions = new Permission[]{
-                Permission.MANAGE_SERVER
-            };
+            this.allowedRoles = Collections.singletonList(
+                Constants.ROLE_ADMINISTRATOR
+            );
+            this.hasModalReply = true;
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.CHANNEL, "channel", "The channel to sent the message in.")
@@ -74,7 +82,12 @@ public class CmdMsg extends SlashCommand{
         }
         
         @Override
-        protected void execute(SlashCommandEvent event){
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
+            
+        }
+        
+        @Override
+        public void withModalReply(SlashCommandEvent event){
             TextChannel channel = event.getOption("channel", null, option -> option.getAsChannel().asTextChannel());
             boolean asEmbed = event.getOption("embed", false, OptionMapping::getAsBoolean);
             
@@ -98,15 +111,16 @@ public class CmdMsg extends SlashCommand{
         }
     }
     
-    private static class Edit extends SlashCommand{
+    private static class Edit extends BotCommand{
         
         public Edit(){
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
             
-            this.userPermissions = new Permission[]{
-                Permission.MANAGE_SERVER
-            };
+            this.allowedRoles = Collections.singletonList(
+                Constants.ROLE_ADMINISTRATOR
+            );
+            this.hasModalReply = true;
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.CHANNEL, "channel", "The channel to edit the message in.")
@@ -119,7 +133,10 @@ public class CmdMsg extends SlashCommand{
         }
         
         @Override
-        protected void execute(SlashCommandEvent event){
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
+        
+        @Override
+        public void withModalReply(SlashCommandEvent event){
             TextChannel channel = event.getOption("channel", null, option -> option.getAsChannel().asTextChannel());
             long messageId = event.getOption("id", -1L, option -> {
                 try{

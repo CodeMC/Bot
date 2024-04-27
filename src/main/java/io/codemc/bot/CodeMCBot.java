@@ -25,6 +25,7 @@ import io.codemc.bot.commands.CmdDisable;
 import io.codemc.bot.commands.CmdMsg;
 import io.codemc.bot.commands.CmdSubmit;
 import io.codemc.bot.listeners.ModalListener;
+import io.codemc.bot.menu.ApplicationMenu;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -62,7 +63,12 @@ public class CodeMCBot{
                 new CmdDisable(),
                 new CmdMsg(),
                 new CmdSubmit()
-            ).forceGuildOnly(Constants.SERVER)
+            )
+            .addContextMenus(
+                new ApplicationMenu.Accept(),
+                new ApplicationMenu.Deny()
+            )
+            .forceGuildOnly(Constants.SERVER)
             .build();
         
         JDABuilder.createDefault(token)

@@ -18,31 +18,38 @@
 
 package io.codemc.bot.commands;
 
-import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-import net.dv8tion.jda.api.Permission;
+import io.codemc.bot.utils.CommandUtil;
+import io.codemc.bot.utils.Constants;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CmdDisable extends SlashCommand{
+import java.util.Collections;
+
+public class CmdDisable extends BotCommand{
     
     private final Logger logger = LoggerFactory.getLogger("Shutdown");
     
     public CmdDisable(){
         this.name = "disable";
         this.help = "Disables the bot.";
-    
-        this.userPermissions = new Permission[]{
-            Permission.MANAGE_SERVER
-        };
+        
+        this.allowedRoles = Collections.singletonList(
+            Constants.ROLE_ADMINISTRATOR
+        );
     }
     
     @Override
-    protected void execute(SlashCommandEvent event){
-        event.reply("Disabling bot...").setEphemeral(true).queue(m -> {
-            logger.info("Received disable command by {}.", event.getUser().getEffectiveName());
-            logger.info("Disabling bot...");
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
+        hook.editOriginalEmbeds(CommandUtil.getEmbed().setColor(0x00FF00).setDescription("Bot disabled!").build()).queue(h -> {
+            logger.info("Bot disabled by {}", event.getUser().getEffectiveName());
             System.exit(0);
         });
     }
+    
+    @Override
+    public void withModalReply(SlashCommandEvent event){}
 }

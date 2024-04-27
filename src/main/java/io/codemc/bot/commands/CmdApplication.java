@@ -23,7 +23,6 @@ import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -43,15 +42,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class CmdApplication extends SlashCommand{
+public class CmdApplication extends BotCommand{
     
     public CmdApplication(){
         this.name = "application";
         this.help = "Accept or deny applications.";
         
-        this.userPermissions = new Permission[]{
-            Permission.MANAGE_SERVER
-        };
+        this.allowedRoles = Arrays.asList(
+            Constants.ROLE_ADMINISTRATOR,
+            Constants.ROLE_MODERATOR
+        );
         
         this.children = new SlashCommand[]{
             new Accept(),
@@ -60,14 +60,12 @@ public class CmdApplication extends SlashCommand{
     }
     
     @Override
-    protected void execute(SlashCommandEvent event){}
+    public void withModalReply(SlashCommandEvent event){}
     
-    private static void handle(InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
-        if(guild == null || !guild.getId().equals(Constants.SERVER)){
-            CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve Server!").send();
-            return;
-        }
-        
+    @Override
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
+    
+    public static void handle(InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
         TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
         if(requestChannel == null){
             CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve `request-access` channel.").send();
@@ -94,8 +92,6 @@ public class CmdApplication extends SlashCommand{
                 CommandUtil.EmbedReply.fromHook(hook).withError("Embed does not have a valid footer.").send();
                 return;
             }
-            
-            System.out.println("Embed Footer text: " + userId);
             
             String userLink = null;
             String repoLink = null;
@@ -193,7 +189,7 @@ public class CmdApplication extends SlashCommand{
             .build();
     }
     
-    private static class Accept extends SlashCommand{
+    private static class Accept extends BotCommand{
         
         private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
         
@@ -201,9 +197,10 @@ public class CmdApplication extends SlashCommand{
             this.name = "accept";
             this.help = "Accept an application";
             
-            this.userPermissions = new Permission[]{
-                Permission.MANAGE_SERVER
-            };
+            this.allowedRoles = Arrays.asList(
+                Constants.ROLE_ADMINISTRATOR,
+                Constants.ROLE_MODERATOR
+            );
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -212,7 +209,10 @@ public class CmdApplication extends SlashCommand{
         }
         
         @Override
-        protected void execute(SlashCommandEvent event){
+        public void withModalReply(SlashCommandEvent event){}
+        
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
             long messageId = event.getOption("id", -1L, option -> {
                 try{
                     return Long.parseLong(option.getAsString());
@@ -223,32 +223,33 @@ public class CmdApplication extends SlashCommand{
             String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
             
             if(messageId == -1L || projectUrl == null){
-                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                CommandUtil.EmbedReply.fromHook(hook).withError(
                     "Message ID or Project URL were not present!"
                 ).send();
                 return;
             }
             
             if(!projectUrlPattern.matcher(projectUrl).matches()){
-                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                CommandUtil.EmbedReply.fromHook(hook).withError(
                     "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!"
                 ).send();
                 return;
             }
             
-            event.deferReply(true).queue(hook -> handle(hook, event.getGuild(), messageId, projectUrl, true));
+            handle(hook, guild, messageId, projectUrl, true);
         }
     }
     
-    private static class Deny extends SlashCommand{
+    private static class Deny extends BotCommand{
         
         public Deny(){
             this.name = "deny";
             this.help = "Deny an application";
             
-            this.userPermissions = new Permission[]{
-                Permission.MANAGE_SERVER
-            };
+            this.allowedRoles = Arrays.asList(
+                Constants.ROLE_ADMINISTRATOR,
+                Constants.ROLE_MODERATOR
+            );
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -257,7 +258,10 @@ public class CmdApplication extends SlashCommand{
         }
         
         @Override
-        protected void execute(SlashCommandEvent event){
+        public void withModalReply(SlashCommandEvent event){}
+        
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
             long messageId = event.getOption("id", -1L, option -> {
                 try{
                     return Long.parseLong(option.getAsString());
@@ -268,13 +272,13 @@ public class CmdApplication extends SlashCommand{
             String reason = event.getOption("reason", null, OptionMapping::getAsString);
             
             if(messageId == -1L || reason == null){
-                CommandUtil.EmbedReply.fromCommandEvent(event).withError(
+                CommandUtil.EmbedReply.fromHook(hook).withError(
                     "Message ID or Reason were not present!"
                 ).send();
                 return;
             }
             
-            event.deferReply(true).queue(hook -> handle(hook, event.getGuild(), messageId, reason, false));
+            handle(hook, guild, messageId, reason, false);
         }
     }
 }
