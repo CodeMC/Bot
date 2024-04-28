@@ -27,10 +27,8 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 
 public class CmdReload extends BotCommand{
     
-    private final CodeMCBot bot;
-    
     public CmdReload(CodeMCBot bot){
-        this.bot = bot;
+        super(bot);
         
         this.name = "reload";
         this.help = "Reloads the configuration.";

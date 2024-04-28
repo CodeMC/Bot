@@ -90,4 +90,12 @@ public class ConfigHandler{
             return Collections.emptyList();
         }
     }
+    
+    public List<String> getStringList(Object... path){
+        try{
+            return node.node(path).getList(String.class);
+        }catch(SerializationException ex){
+            return Collections.emptyList();
+        }
+    }
 }

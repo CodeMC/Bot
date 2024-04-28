@@ -19,6 +19,7 @@
 package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.bot.CodeMCBot;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -30,7 +31,9 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 
 public class CmdSubmit extends BotCommand{
     
-    public CmdSubmit(){
+    public CmdSubmit(CodeMCBot bot){
+        super(bot);
+        
         this.name = "submit";
         this.help = "Submit a request to join the CodeMC CI with a project.";
         

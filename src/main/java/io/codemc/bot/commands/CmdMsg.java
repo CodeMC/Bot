@@ -42,6 +42,8 @@ import java.util.Arrays;
 public class CmdMsg extends BotCommand{
     
     public CmdMsg(CodeMCBot bot){
+        super(bot);
+        
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
         
@@ -62,6 +64,8 @@ public class CmdMsg extends BotCommand{
     private static class Post extends BotCommand{
         
         public Post(CodeMCBot bot){
+            super(bot);
+            
             this.name = "send";
             this.help = "Sends a message as the Bot.";
             
@@ -109,6 +113,8 @@ public class CmdMsg extends BotCommand{
     private static class Edit extends BotCommand{
         
         public Edit(CodeMCBot bot){
+            super(bot);
+            
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
             

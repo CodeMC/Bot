@@ -22,7 +22,6 @@ import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -46,6 +45,8 @@ import java.util.regex.Pattern;
 public class CmdApplication extends BotCommand{
     
     public CmdApplication(CodeMCBot bot){
+        super(bot);
+        
         this.name = "application";
         this.help = "Accept or deny applications.";
         
@@ -121,7 +122,7 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            channel.sendMessage(getMessage(userId, userLink, repoLink, str, accepted)).queue(m -> {
+            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
                     thread.getManager().setArchived(true)
@@ -175,10 +176,13 @@ public class CmdApplication extends BotCommand{
         });
     }
     
-    private static MessageCreateData getMessage(String userId, String userLink, String repoLink, String str, boolean accepted){
+    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, boolean accepted){
+        
+        String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied"))); 
+        
         MessageEmbed embed = new EmbedBuilder()
             .setColor(accepted ? 0x00FF00 : 0xFF0000)
-            .setDescription(accepted ? Constants.ACCEPTED_MSG : Constants.REJECTED_MSG)
+            .setDescription(msg)
             .addField("User/Organisation:", userLink, true)
             .addField("Repository:", repoLink, true)
             .addField(accepted ? "New Project:" : "Reason:", str, false)
@@ -194,10 +198,8 @@ public class CmdApplication extends BotCommand{
         
         private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
         
-        private final CodeMCBot bot;
-        
         public Accept(CodeMCBot bot){
-            this.bot = bot;
+            super(bot);
             
             this.name = "accept";
             this.help = "Accept an application";
@@ -244,10 +246,8 @@ public class CmdApplication extends BotCommand{
     
     private static class Deny extends BotCommand{
         
-        private final CodeMCBot bot;
-        
         public Deny(CodeMCBot bot){
-            this.bot = bot;
+            super(bot);
             
             this.name = "deny";
             this.help = "Deny an application";

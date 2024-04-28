@@ -32,6 +32,8 @@ public class CmdDisable extends BotCommand{
     private final Logger logger = LoggerFactory.getLogger("Shutdown");
     
     public CmdDisable(CodeMCBot bot){
+        super(bot);
+        
         this.name = "disable";
         this.help = "Disables the bot.";
         

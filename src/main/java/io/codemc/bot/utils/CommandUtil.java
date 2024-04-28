@@ -38,7 +38,11 @@ public class CommandUtil{
         return new EmbedBuilder().setColor(0x0172BA);
     }
     
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean hasRole(Member member, List<Long> roleIds){
+        if(roleIds.isEmpty())
+            return true;
+        
         return member.getRoles().stream()
             .filter(role -> roleIds.contains(role.getIdLong()))
             .findFirst()

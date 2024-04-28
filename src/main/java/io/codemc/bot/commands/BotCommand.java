@@ -20,21 +20,25 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class BotCommand extends SlashCommand{
     
     protected List<Long> allowedRoles = new ArrayList<>();
     protected boolean hasModalReply = false;
+    
+    public final CodeMCBot bot;
+    
+    public BotCommand(CodeMCBot bot){
+        this.bot = bot;
+    }
     
     @Override
     public void execute(SlashCommandEvent event){
@@ -46,7 +50,7 @@ public abstract class BotCommand extends SlashCommand{
             return;
         }
         
-        if(!guild.getId().equals(Constants.SERVER)){
+        if(guild.getIdLong() != bot.getConfigHandler().getLong("server")){
             CommandUtil.EmbedReply.fromCommandEvent(event)
                 .withError("Unable to find CodeMC Server!")
                 .send();
@@ -61,29 +65,11 @@ public abstract class BotCommand extends SlashCommand{
             return;
         }
         
-        if(!allowedRoles.isEmpty()){
-            boolean hasRole = false;
-            for(Role role : member.getRoles()){
-                if(allowedRoles.contains(role.getIdLong())){
-                    hasRole = true;
-                    break;
-                }
-            }
-            
-            if(!hasRole){
-                List<String> names = guild.getRoles().stream()
-                    .filter(role -> allowedRoles.contains(role.getIdLong()))
-                    .map(Role::getName)
-                    .collect(Collectors.toList());
-                
-                CommandUtil.EmbedReply.fromCommandEvent(event)
-                    .withError(
-                        "You don't have any of the allowed roles to execute this command.",
-                        "Allowed Roles: " + String.join(", ", names)
-                    )
-                    .send();
-                return;
-            }
+        if(!CommandUtil.hasRole(member, allowedRoles)){
+            CommandUtil.EmbedReply.fromCommandEvent(event)
+                .withError("You lack the permissions required to use this command!")
+                .send();
+            return;
         }
         
         if(hasModalReply){

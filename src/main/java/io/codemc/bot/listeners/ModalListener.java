@@ -21,7 +21,6 @@ package io.codemc.bot.listeners;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -59,7 +58,7 @@ public class ModalListener extends ListenerAdapter{
             return;
         
         Guild guild = event.getGuild();
-        if(guild == null || !guild.getId().equals(Constants.SERVER)){
+        if(guild == null || guild.getIdLong() != bot.getConfigHandler().getLong("server")){
             CommandUtil.EmbedReply.fromModalEvent(event)
                 .withError("Unable to retrieve CodeMC Server!")
                 .send();
@@ -96,7 +95,7 @@ public class ModalListener extends ListenerAdapter{
                 String repo = String.format("[`%s/%s`](%s)", repoMatcher.group("user"), repoMatcher.group("repo"), repoLink);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
+                TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
                 if(requestChannel == null){
                     CommandUtil.EmbedReply.fromHook(hook).withError(
                         "Unable to retrieve `request-access` channel!"

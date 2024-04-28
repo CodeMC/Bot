@@ -22,7 +22,6 @@ import com.jagrosh.jdautilities.command.MessageContextMenu;
 import com.jagrosh.jdautilities.command.MessageContextMenuEvent;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -34,7 +33,7 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 public class ApplicationMenu{
     private static void handleEvent(CodeMCBot bot, MessageContextMenuEvent event, boolean accepted){
         Guild guild = event.getGuild();
-        if(guild == null || !guild.getId().equals(Constants.SERVER)){
+        if(guild == null || guild.getIdLong() != bot.getConfigHandler().getLong("server")){
             event.reply("This Context Menu Action may only work in the CodeMC Server!")
                 .setEphemeral(true)
                 .queue();
@@ -42,7 +41,7 @@ public class ApplicationMenu{
         }
         
         MessageChannel channel = event.getChannel();
-        if(channel == null || !channel.getId().equals(Constants.REQUEST_ACCESS)){
+        if(channel == null || channel.getIdLong() != bot.getConfigHandler().getLong("channels", "request_access")){
             event.reply("This Context Menu Action may only work in the request-access channel of the CodeMC Server!")
                 .setEphemeral(true)
                 .queue();

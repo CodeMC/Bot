@@ -97,7 +97,7 @@ public class CodeMCBot{
             new CmdDisable(this),
             new CmdMsg(this),
             new CmdReload(this),
-            new CmdSubmit()
+            new CmdSubmit(this)
         );
         
         logger.info("Adding Context Menus...");
