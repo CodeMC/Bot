@@ -51,7 +51,7 @@ public class CmdSubmit extends BotCommand{
             .setRequired(true)
             .build();
         TextInput description = TextInput.create("description", "Description", TextInputStyle.PARAGRAPH)
-            .setPlaceholder("Duscird Vit fir tge CideNC Sercver.")
+            .setPlaceholder("Discord Bot for the CodeMC Server.")
             .setRequired(true)
             .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
             .build();

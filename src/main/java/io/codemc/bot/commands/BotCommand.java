@@ -38,7 +38,6 @@ public abstract class BotCommand extends SlashCommand{
     
     @Override
     public void execute(SlashCommandEvent event){
-        System.out.println("Custom BotCommand called!");
         Guild guild = event.getGuild();
         if(guild == null){
             CommandUtil.EmbedReply.fromCommandEvent(event)

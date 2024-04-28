@@ -18,15 +18,11 @@
 
 package io.codemc.bot;
 
-import com.jagrosh.jdautilities.command.CommandClient;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
-import io.codemc.bot.commands.CmdApplication;
-import io.codemc.bot.commands.CmdDisable;
-import io.codemc.bot.commands.CmdMsg;
-import io.codemc.bot.commands.CmdSubmit;
+import io.codemc.bot.commands.*;
+import io.codemc.bot.config.ConfigHandler;
 import io.codemc.bot.listeners.ModalListener;
 import io.codemc.bot.menu.ApplicationMenu;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -35,42 +31,82 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+import java.util.List;
 
 public class CodeMCBot{
     
-    private final Logger LOG = LoggerFactory.getLogger(CodeMCBot.class);
+    private final Logger logger = LoggerFactory.getLogger(CodeMCBot.class);
+    private final ConfigHandler configHandler = new ConfigHandler();
     
     public static void main(String[] args){
         try{
-            new CodeMCBot().start(args[0]);
+            new CodeMCBot().start();
         }catch(LoginException ex){
-            new CodeMCBot().LOG.error("Unable to login to Discord!", ex);
+            new CodeMCBot().logger.error("Unable to login to Discord!", ex);
         }
     }
     
-    private void start(String token) throws LoginException{
-        CommandClient commandClient = new CommandClientBuilder()
-            .setOwnerId(
-                "204232208049766400" // Andre_601#0601
-            )
-            .setCoOwnerIds(
-                "143088571656437760", // sgdc3#0001
-                "282975975954710528" // tr7zw#4005
-            )
-            .setActivity(null)
-            .addSlashCommands(
-                new CmdApplication(),
-                new CmdDisable(),
-                new CmdMsg(),
-                new CmdSubmit()
-            )
-            .addContextMenus(
-                new ApplicationMenu.Accept(),
-                new ApplicationMenu.Deny()
-            )
-            .forceGuildOnly(Constants.SERVER)
-            .build();
+    private void start() throws LoginException{
+        if(!configHandler.loadConfig()){
+            logger.warn("Unable to load config.json! See previous logs for any errors.");
+            System.exit(1);
+            return;
+        }
         
+        String token = configHandler.getString("bot_token");
+        if(token == null || token.isEmpty()){
+            logger.warn("Received invalid Bot Token!");
+            System.exit(1);
+            return;
+        }
+        
+        long owner = configHandler.getLong("users", "owner");
+        if(owner == -1L){
+            logger.warn("Unable to retrieve Owner ID. This value is required!");
+            System.exit(1);
+            return;
+        }
+        
+        long guildId = configHandler.getLong("server");
+        if(guildId == -1L){
+            logger.warn("Unable to retrieve Server ID. This value is required!");
+            System.exit(1);
+            return;
+        }
+        
+        CommandClientBuilder clientBuilder = new CommandClientBuilder().setActivity(null).forceGuildOnly(guildId);
+        
+        clientBuilder.setOwnerId(owner);
+        
+        List<Long> coOwners = configHandler.getLongList("users", "co_owners");
+        
+        if(coOwners != null && !coOwners.isEmpty()){
+            logger.info("Adding {} Co-Owner(s) to the bot.", coOwners.size());
+            // Annoying, but setCoOwnerIds has no overload with a Collection<Long>...
+            long[] coOwnerIds = new long[coOwners.size()];
+            for(int i = 0; i < coOwnerIds.length; i++){
+                coOwnerIds[i] = coOwners.get(i);
+            }
+            
+            clientBuilder.setCoOwnerIds(coOwnerIds);
+        }
+        
+        logger.info("Adding commands...");
+        clientBuilder.addSlashCommands(
+            new CmdApplication(this),
+            new CmdDisable(this),
+            new CmdMsg(this),
+            new CmdReload(this),
+            new CmdSubmit()
+        );
+        
+        logger.info("Adding Context Menus...");
+        clientBuilder.addContextMenus(
+            new ApplicationMenu.Accept(this),
+            new ApplicationMenu.Deny(this)
+        );
+        
+        logger.info("Starting bot...");
         JDABuilder.createDefault(token)
             .enableIntents(
                 GatewayIntent.GUILD_MEMBERS,
@@ -83,9 +119,13 @@ public class CodeMCBot{
                 "Applications"
             ))
             .addEventListeners(
-                commandClient,
-                new ModalListener()
+                clientBuilder.build(),
+                new ModalListener(this)
             )
             .build();
+    }
+    
+    public ConfigHandler getConfigHandler(){
+        return configHandler;
     }
 }

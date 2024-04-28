@@ -20,28 +20,19 @@ package io.codemc.bot.menu;
 
 import com.jagrosh.jdautilities.command.MessageContextMenu;
 import com.jagrosh.jdautilities.command.MessageContextMenuEvent;
+import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class ApplicationMenu{
-    
-    private static final List<Long> allowedRoles = Arrays.asList(
-        Constants.ROLE_ADMINISTRATOR,
-        Constants.ROLE_MODERATOR
-    );
-    
-    private static void handleEvent(MessageContextMenuEvent event, boolean accepted){
+    private static void handleEvent(CodeMCBot bot, MessageContextMenuEvent event, boolean accepted){
         Guild guild = event.getGuild();
         if(guild == null || !guild.getId().equals(Constants.SERVER)){
             event.reply("This Context Menu Action may only work in the CodeMC Server!")
@@ -64,24 +55,10 @@ public class ApplicationMenu{
             return;
         }
         
-        List<Long> roleIds = member.getRoles().stream().map(Role::getIdLong).collect(Collectors.toList());
-        boolean hasRole = false;
-        for(long roleId : roleIds){
-            if(allowedRoles.contains(roleId)){
-                hasRole = true;
-                break;
-            }
-        }
-        
-        if(!hasRole){
-            List<String> roleNames = guild.getRoles().stream()
-                .filter(role -> allowedRoles.contains(role.getIdLong()))
-                .map(Role::getName)
-                .collect(Collectors.toList());
-            
-            event.reply(
-                "You do not have any of the allowed roles to execute this Context Menu Action.\n" +
-                    "Allowed Roles: " + String.join(", ", roleNames)
+        if(!CommandUtil.hasRole(member, bot.getConfigHandler().getLongList("allowed_roles", "application"))){
+            event.replyEmbeds(CommandUtil.getEmbed().setColor(0xFF0000)
+                .setDescription("You do not have permissions to use this Context Menu Action!")
+                .build()
             ).queue();
             return;
         }
@@ -111,25 +88,33 @@ public class ApplicationMenu{
     
     public static class Accept extends MessageContextMenu{
         
-        public Accept(){
+        private final CodeMCBot bot;
+        
+        public Accept(CodeMCBot bot){
+            this.bot = bot;
+            
             this.name = "Accept this application";
         }
         
         @Override
         protected void execute(MessageContextMenuEvent event){
-            handleEvent(event, true);
+            handleEvent(bot, event, true);
         }
     }
     
     public static class Deny extends MessageContextMenu{
         
-        public Deny(){
+        private final CodeMCBot bot;
+        
+        public Deny(CodeMCBot bot){
+            this.bot = bot;
+            
             this.name = "Deny this application";
         }
         
         @Override
         protected void execute(MessageContextMenuEvent event){
-            handleEvent(event, false);
+            handleEvent(bot, event, false);
         }
     }
 }

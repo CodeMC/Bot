@@ -24,7 +24,7 @@ plugins {
 }
 
 group 'io.codemc'
-version '2.0.0'
+version '2.1.0'
 
 compileJava.options.encoding('UTF-8')
 
@@ -42,6 +42,7 @@ dependencies {
     }
     implementation group: 'pw.chew', name: 'jda-chewtils-commons', version: '2.0-SNAPSHOT'
     implementation group: 'pw.chew', name: 'jda-chewtils-command', version: '2.0-SNAPSHOT'
+    implementation group: 'org.spongepowered', name: 'configurate-gson', version: '4.1.2'
 }
 
 artifacts {

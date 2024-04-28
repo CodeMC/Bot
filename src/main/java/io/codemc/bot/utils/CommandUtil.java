@@ -21,9 +21,12 @@ package io.codemc.bot.utils;
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class CommandUtil{
     
@@ -33,6 +36,13 @@ public class CommandUtil{
     
     public static EmbedBuilder getEmbed(){
         return new EmbedBuilder().setColor(0x0172BA);
+    }
+    
+    public static boolean hasRole(Member member, List<Long> roleIds){
+        return member.getRoles().stream()
+            .filter(role -> roleIds.contains(role.getIdLong()))
+            .findFirst()
+            .orElse(null) != null;
     }
     
     public static class EmbedReply {

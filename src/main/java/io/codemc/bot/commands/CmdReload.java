@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 CodeMC.io
+ * Copyright 2024 CodeMC.io
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
  * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -24,26 +24,34 @@ import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class CmdDisable extends BotCommand{
+public class CmdReload extends BotCommand{
     
-    private final Logger logger = LoggerFactory.getLogger("Shutdown");
+    private final CodeMCBot bot;
     
-    public CmdDisable(CodeMCBot bot){
-        this.name = "disable";
-        this.help = "Disables the bot.";
+    public CmdReload(CodeMCBot bot){
+        this.bot = bot;
         
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "disable");
+        this.name = "reload";
+        this.help = "Reloads the configuration.";
+        
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "reload");
     }
     
     @Override
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-        hook.editOriginalEmbeds(CommandUtil.getEmbed().setColor(0x00FF00).setDescription("Bot disabled!").build()).queue(h -> {
-            logger.info("Bot disabled by {}", event.getUser().getEffectiveName());
-            System.exit(0);
-        });
+        boolean success = bot.getConfigHandler().reloadConfig();
+        
+        if(success){
+            CommandUtil.EmbedReply.fromHook(hook)
+                .withMessage("Reload success!")
+                .asSuccess()
+                .send();
+        }else{
+            CommandUtil.EmbedReply.fromHook(hook)
+                .withError("There was an issue while reloading the configuration! Check console.")
+                .send();
+        }
     }
     
     @Override

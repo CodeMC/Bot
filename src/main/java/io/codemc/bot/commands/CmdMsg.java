@@ -20,8 +20,8 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -38,21 +38,18 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 public class CmdMsg extends BotCommand{
     
-    public CmdMsg(){
+    public CmdMsg(CodeMCBot bot){
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
         
-        this.allowedRoles = Collections.singletonList(
-            Constants.ROLE_ADMINISTRATOR
-        );
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
         
         this.children = new SlashCommand[]{
-            new Post(),
-            new Edit()
+            new Post(bot),
+            new Edit(bot)
         };
     }
     
@@ -64,13 +61,11 @@ public class CmdMsg extends BotCommand{
     
     private static class Post extends BotCommand{
         
-        public Post(){
+        public Post(CodeMCBot bot){
             this.name = "send";
             this.help = "Sends a message as the Bot.";
             
-            this.allowedRoles = Collections.singletonList(
-                Constants.ROLE_ADMINISTRATOR
-            );
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
             this.hasModalReply = true;
             
             this.options = Arrays.asList(
@@ -113,13 +108,11 @@ public class CmdMsg extends BotCommand{
     
     private static class Edit extends BotCommand{
         
-        public Edit(){
+        public Edit(CodeMCBot bot){
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
             
-            this.allowedRoles = Collections.singletonList(
-                Constants.ROLE_ADMINISTRATOR
-            );
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
             this.hasModalReply = true;
             
             this.options = Arrays.asList(

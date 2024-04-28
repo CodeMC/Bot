@@ -20,6 +20,7 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -44,18 +45,15 @@ import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
     
-    public CmdApplication(){
+    public CmdApplication(CodeMCBot bot){
         this.name = "application";
         this.help = "Accept or deny applications.";
         
-        this.allowedRoles = Arrays.asList(
-            Constants.ROLE_ADMINISTRATOR,
-            Constants.ROLE_MODERATOR
-        );
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
         
         this.children = new SlashCommand[]{
-            new Accept(),
-            new Deny()
+            new Accept(bot),
+            new Deny(bot)
         };
     }
     
@@ -65,8 +63,8 @@ public class CmdApplication extends BotCommand{
     @Override
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
-    public static void handle(InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
-        TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
+    public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
+        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channel", "request_access"));
         if(requestChannel == null){
             CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve `request-access` channel.").send();
             return;
@@ -112,7 +110,10 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            TextChannel channel = guild.getTextChannelById(accepted ? Constants.ACCEPTED_REQUESTS : Constants.REJECTED_REQUESTS);
+            TextChannel channel = guild.getTextChannelById(accepted
+                ? bot.getConfigHandler().getLong("channels", "accepted_requests")
+                : bot.getConfigHandler().getLong("channels", "rejected_requests")
+            );
             if(channel == null){
                 CommandUtil.EmbedReply.fromHook(hook)
                     .withError("Unable to retrieve `" + (accepted ? "accepted" : "rejected") + "-requests` channel.")
@@ -140,7 +141,7 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
                 
-                Role authorRole = guild.getRoleById(Constants.ROLE_AUTHOR);
+                Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
                 if(authorRole == null){
                     CommandUtil.EmbedReply.fromHook(hook)
                         .withError("Unable to retrieve Author Role!")
@@ -193,14 +194,15 @@ public class CmdApplication extends BotCommand{
         
         private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
         
-        public Accept(){
+        private final CodeMCBot bot;
+        
+        public Accept(CodeMCBot bot){
+            this.bot = bot;
+            
             this.name = "accept";
             this.help = "Accept an application";
             
-            this.allowedRoles = Arrays.asList(
-                Constants.ROLE_ADMINISTRATOR,
-                Constants.ROLE_MODERATOR
-            );
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -236,20 +238,21 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            handle(hook, guild, messageId, projectUrl, true);
+            handle(bot, hook, guild, messageId, projectUrl, true);
         }
     }
     
     private static class Deny extends BotCommand{
         
-        public Deny(){
+        private final CodeMCBot bot;
+        
+        public Deny(CodeMCBot bot){
+            this.bot = bot;
+            
             this.name = "deny";
             this.help = "Deny an application";
             
-            this.allowedRoles = Arrays.asList(
-                Constants.ROLE_ADMINISTRATOR,
-                Constants.ROLE_MODERATOR
-            );
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -278,7 +281,7 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            handle(hook, guild, messageId, reason, false);
+            handle(bot, hook, guild, messageId, reason, false);
         }
     }
 }
