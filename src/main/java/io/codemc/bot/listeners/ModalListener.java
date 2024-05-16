@@ -18,8 +18,9 @@
 
 package io.codemc.bot.listeners;
 
+import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -45,27 +46,34 @@ public class ModalListener extends ListenerAdapter{
     
     private final Logger logger = LoggerFactory.getLogger(ModalListener.class);
     
+    private final CodeMCBot bot;
+    
+    public ModalListener(CodeMCBot bot){
+        this.bot = bot;
+    }
+    
     @Override
     public void onModalInteraction(@NotNull ModalInteractionEvent event){
         if(!event.isFromGuild())
             return;
         
         Guild guild = event.getGuild();
-        if(guild == null || !guild.getId().equals(Constants.SERVER)){
+        if(guild == null || guild.getIdLong() != bot.getConfigHandler().getLong("server")){
             CommandUtil.EmbedReply.fromModalEvent(event)
                 .withError("Unable to retrieve CodeMC Server!")
                 .send();
             return;
         }
         
-        if(event.getModalId().equals("submit")){
-            event.deferReply(true).queue(hook -> {
-                
+        String[] args = event.getModalId().split(":");
+        
+        switch(args[0]){
+            case "submit" -> event.deferReply(true).queue(hook -> {                 
                 String userLink = value(event, "userlink");
                 String repoLink = value(event, "repolink");
                 String description = value(event, "description");
                 
-                if(nullOrEmpty(userLink, repoLink, description)){
+                if(userLink == null || userLink.isEmpty() || repoLink == null || repoLink.isEmpty() || description == null || description.isEmpty()){
                     CommandUtil.EmbedReply.fromHook(hook).withError(
                         "User Link, Repository Link or Description was not present!"
                     ).send();
@@ -87,11 +95,11 @@ public class ModalListener extends ListenerAdapter{
                 String repo = String.format("[`%s/%s`](%s)", repoMatcher.group("user"), repoMatcher.group("repo"), repoLink);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
+                TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
                 if(requestChannel == null){
                     CommandUtil.EmbedReply.fromHook(hook).withError(
                         "Unable to retrieve `request-access` channel!"
-                    ).send();
+                    ).send();                     
                     return;
                 }
                 
@@ -124,10 +132,8 @@ public class ModalListener extends ListenerAdapter{
                     ).send()
                 );
             });
-        }else
-        if(event.getModalId().startsWith("message:")){
-            event.deferReply(true).queue(hook -> {
-                String[] args = event.getModalId().split(":");
+            
+            case "message" -> event.deferReply(true).queue(hook -> {
                 if(args.length < 4){
                     CommandUtil.EmbedReply.fromHook(hook)
                         .withError("Invalid Modal data. Expected `>=4` but received `" + args.length + "`!")
@@ -176,8 +182,7 @@ public class ModalListener extends ListenerAdapter{
                                 .send()
                         );
                     }
-                }else
-                if(args[1].equals("edit")){
+                }else if(args[1].equals("edit")){
                     if(args.length == 4){
                         CommandUtil.EmbedReply.fromHook(hook)
                             .withError("Received invalid Modal data. Expected `>4` but got `=4`")
@@ -224,9 +229,51 @@ public class ModalListener extends ListenerAdapter{
                         .send();
                 }
             });
-        }else{
-            CommandUtil.EmbedReply.fromModalEvent(event)
-                .withError("Received unknwon Modal Data: `"+ event.getModalId() +"`")
+                
+            case "application" -> event.deferReply(true).queue(hook -> {
+                if(args.length < 3){
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError("Invalid Modal data. Expected `=3` but received `" + args.length + "`!")
+                        .send();
+                    return;
+                }
+                
+                if(!args[1].equals("accepted") && !args[1].equals("denied")){
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError("Received unknown Application type. Expected `accepted` or `denied` but received `" + args[1] + "`.")
+                        .send();
+                    return;
+                }
+                
+                long messageId;
+                try{
+                    messageId = Long.parseLong(args[2]);
+                }catch(NumberFormatException ex){
+                    messageId = -1L;
+                }
+                
+                if(messageId == -1L){
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError("Received Invalid Message ID. Expected number but got `" + args[2] + "` instead!")
+                        .send();
+                    return;
+                }
+                
+                boolean accepted = args[1].equals("accepted");
+                
+                String text = value(event, "text");
+                if(text == null || text.isEmpty()){
+                    CommandUtil.EmbedReply.fromHook(hook)
+                        .withError("Received invalid " + (accepted ? "Project URL" : "Reason") + ". Text was empty/null.")
+                        .send();
+                    return;
+                }
+                
+                CmdApplication.handle(bot, hook, guild, messageId, text, accepted);
+            });
+            
+            default -> CommandUtil.EmbedReply.fromModalEvent(event)
+                .withError("Received Modal with unknown ID `" + event.getModalId() + "`.")
                 .send();
         }
     }
@@ -238,15 +285,6 @@ public class ModalListener extends ListenerAdapter{
             .send();
         
         logger.info("[Message] User {} {} a Message as the Bot.", hook.getInteraction().getUser().getEffectiveName(), edit ? "edited" : "sent");
-    }
-    
-    private boolean nullOrEmpty(String... values){
-        for(String value : values){
-            if(value == null || value.isEmpty())
-                return true;
-        }
-        
-        return false;
     }
     
     private String value(ModalInteractionEvent event, String id){
