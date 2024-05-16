@@ -85,7 +85,7 @@ public class ApplicationMenu{
         event.replyModal(modal).queue();
     }
     
-    public static class Accept extends MessageContextMenu{
+    public static final class Accept extends MessageContextMenu{
         
         private final CodeMCBot bot;
         
@@ -101,7 +101,7 @@ public class ApplicationMenu{
         }
     }
     
-    public static class Deny extends MessageContextMenu{
+    public static final class Deny extends MessageContextMenu{
         
         private final CodeMCBot bot;
         

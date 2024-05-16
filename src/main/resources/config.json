@@ -1,47 +1,24 @@
 {
   "bot_token": "TOKEN",
-  "server": 405915656039694336,
+  "server": 0,
   "channels": {
-    "request_access": 1233971297185431582,
-    "accepted_requests": 784119059138478080,
-    "rejected_requests": 800423355551449098
+    "request_access": 0,
+    "accepted_requests": 0,
+    "rejected_requests": 0
   },
-  "author_role": 405918641859723294,
+  "author_role": 0,
   "allowed_roles": {
-    "application": [
-      405917902865170453,
-      659568973079379971,
-      1233971297185431582
-    ],
-    "disable": [
-      405917902865170453
-    ],
-    "msg": [
-      405917902865170453
-    ],
-    "reload": [
-      405917902865170453
-    ]
+    "application": [],
+    "disable": [],
+    "msg": [],
+    "reload": []
   },
   "users": {
-    "owner": 204232208049766400,
-    "co_owners": [
-      143088571656437760,
-      282975975954710528
-    ]
+    "owner": 0,
+    "co_owners": []
   },
   "messages": {
-    "accepted": [
-      "Your request has been **accepted**!",
-      "You will now be able to login with your GitHub Account and access the approved Repository on the CI.",
-      "",
-      "Remember to [visit our Documentation](https://docs.codemc.io) and [Read our FAQ](https://docs.codemc.io/faq) to learn how to setup automatic builds!"
-    ],
-    "denied": [
-      "Your request has been **rejected**!",
-      "The reason for the denial is stated below.",
-      "",
-      "You may re-apply unless mentioned otherwise in the Reason."
-    ]
+    "accepted": [],
+    "denied": []
   }
 }
