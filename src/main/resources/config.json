@@ -20,5 +20,10 @@
   "messages": {
     "accepted": [],
     "denied": []
+  },
+  "jenkins": {
+    "url": "URL",
+    "username": "USERNAME",
+    "token": "API TOKEN"
   }
 }

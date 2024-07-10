@@ -43,5 +43,10 @@
       "",
       "You may re-apply unless mentioned otherwise in the Reason."
     ]
+  },
+  "jenkins": {
+    "url": "https://ci.codemc.io",
+    "username": "admin",
+    "token": "admin_api_token"
   }
 }

@@ -64,7 +64,7 @@ public class CmdApplication extends BotCommand{
     @Override
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
-    public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
+    public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted, boolean freestyle){
         TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channel", "request_access"));
         if(requestChannel == null){
             CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve `request-access` channel.").send();
@@ -141,6 +141,27 @@ public class CmdApplication extends BotCommand{
                         .send();
                     return;
                 }
+
+                String username = member.getEffectiveName();
+
+                String[] split = str.split("/");
+                String project = split[6];
+
+                boolean userSuccess = bot.getJenkins().createJenkinsUser(username);
+                if (!userSuccess) {
+                    CommandUtil.EmbedReply.fromHook(hook)
+                            .withError("Failed to create Jenkins user for " + username + "! Manual creation required.")
+                            .send();
+                    return;
+                }
+
+                boolean jobSuccess = bot.getJenkins().createJenkinsJob(username, project, freestyle);
+                if (!jobSuccess) {
+                    CommandUtil.EmbedReply.fromHook(hook)
+                            .withError("Failed to create Jenkins job for " + username + "! Manual creation required.")
+                            .send();
+                    return;
+                }
                 
                 Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
                 if(authorRole == null){
@@ -208,7 +229,8 @@ public class CmdApplication extends BotCommand{
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true)
+                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true),
+                new OptionData(OptionType.BOOLEAN, "freestyle", "False if built with Maven. If built with something other than Maven (such as Gradle), set to true.").setRequired(true)
             );
         }
         
@@ -225,6 +247,7 @@ public class CmdApplication extends BotCommand{
                 }
             });
             String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
+            boolean freestyle = event.getOption("freestyle", false, OptionMapping::getAsBoolean);
             
             if(messageId == -1L || projectUrl == null){
                 CommandUtil.EmbedReply.fromHook(hook).withError(
@@ -240,7 +263,7 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            handle(bot, hook, guild, messageId, projectUrl, true);
+            handle(bot, hook, guild, messageId, projectUrl, true, freestyle);
         }
     }
     
@@ -281,7 +304,7 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            handle(bot, hook, guild, messageId, reason, false);
+            handle(bot, hook, guild, messageId, reason, false, false);
         }
     }
 }

@@ -21,6 +21,7 @@ package io.codemc.bot;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import io.codemc.bot.commands.*;
 import io.codemc.bot.config.ConfigHandler;
+import io.codemc.bot.jenkins.JenkinsAPI;
 import io.codemc.bot.listeners.ModalListener;
 import io.codemc.bot.menu.ApplicationMenu;
 import net.dv8tion.jda.api.JDABuilder;
@@ -37,6 +38,7 @@ public class CodeMCBot{
     
     private final Logger logger = LoggerFactory.getLogger(CodeMCBot.class);
     private final ConfigHandler configHandler = new ConfigHandler();
+    private final JenkinsAPI jenkins = new JenkinsAPI(this);
     
     public static void main(String[] args){
         try{
@@ -90,6 +92,13 @@ public class CodeMCBot{
             
             clientBuilder.setCoOwnerIds(coOwnerIds);
         }
+
+        logger.info("Pinging Jenkins...");
+        if(!jenkins.ping()){
+            logger.warn("Unable to ping Jenkins! Please check your configuration.");
+            System.exit(1);
+            return;
+        }
         
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(
@@ -105,7 +114,7 @@ public class CodeMCBot{
             new ApplicationMenu.Accept(this),
             new ApplicationMenu.Deny(this)
         );
-        
+
         logger.info("Starting bot...");
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -124,8 +133,16 @@ public class CodeMCBot{
             )
             .build();
     }
+
+    public Logger getLogger(){
+        return logger;
+    }
     
     public ConfigHandler getConfigHandler(){
         return configHandler;
+    }
+
+    public JenkinsAPI getJenkins(){
+        return jenkins;
     }
 }
