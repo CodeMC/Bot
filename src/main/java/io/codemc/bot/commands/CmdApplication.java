@@ -142,9 +142,8 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
 
-                String username = member.getEffectiveName();
-
                 String[] split = str.split("/");
+                String username = split[4];
                 String project = split[6];
 
                 boolean userSuccess = bot.getJenkins().createJenkinsUser(username);
@@ -229,7 +228,7 @@ public class CmdApplication extends BotCommand{
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true),
+                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project. Their username should reflect their GitHub username, not their Discord username.").setRequired(true),
                 new OptionData(OptionType.BOOLEAN, "freestyle", "False if built with Maven. If built with something other than Maven (such as Gradle), set to true.").setRequired(true)
             );
         }
