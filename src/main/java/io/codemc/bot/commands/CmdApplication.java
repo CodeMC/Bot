@@ -40,10 +40,13 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
-    
+
+    public static final Pattern PROJECT_URL_PATTERN = Pattern.compile("^https://ci\\.codemc\\.io/job/([a-zA-Z0-9-]+)/job/([a-zA-Z0-9-_.]+)/?$");
+
     public CmdApplication(CodeMCBot bot){
         super(bot);
         
@@ -142,9 +145,16 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
 
-                String[] split = str.split("/");
-                String username = split[4];
-                String project = split[6];
+                Matcher matcher = PROJECT_URL_PATTERN.matcher(str);
+                if (!matcher.matches()) {
+                    CommandUtil.EmbedReply.fromHook(hook)
+                            .withError("The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
+                            .send();
+                    return;
+                }
+
+                String username = matcher.group(1);
+                String project = matcher.group(2);
 
                 boolean userSuccess = bot.getJenkins().createJenkinsUser(username);
                 if (!userSuccess) {
@@ -215,9 +225,7 @@ public class CmdApplication extends BotCommand{
     }
     
     private static class Accept extends BotCommand{
-        
-        private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
-        
+
         public Accept(CodeMCBot bot){
             super(bot);
             
@@ -254,8 +262,8 @@ public class CmdApplication extends BotCommand{
                 ).send();
                 return;
             }
-            
-            if(!projectUrlPattern.matcher(projectUrl).matches()){
+
+            if(!PROJECT_URL_PATTERN.matcher(projectUrl).matches()){
                 CommandUtil.EmbedReply.fromHook(hook).withError(
                     "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!"
                 ).send();
