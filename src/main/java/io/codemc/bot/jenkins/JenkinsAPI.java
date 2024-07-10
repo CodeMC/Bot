@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.util.stream.Collectors;
 
 public class JenkinsAPI {
@@ -71,15 +72,15 @@ public class JenkinsAPI {
         }
     }
 
-    public String jenkinsUserTemplate(){
+    private String jenkinsUserTemplate(){
         return template("/template-user-config.xml");
     }
 
-    public String jenkinsMavenJob(){
+    private String jenkinsMavenJob(){
         return template("/template-job-maven.xml");
     }
 
-    public String jenkinsFreestyleJob(){
+    private String jenkinsFreestyleJob(){
         return template("/template-job-freestyle.xml");
     }
 
