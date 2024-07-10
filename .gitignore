@@ -142,3 +142,6 @@ hs_err_pid*
 /.idea/misc.xml
 /.idea/uiDesigner.xml
 /.idea/vcs.xml
+
+# local gradle stuff
+.gradle/
