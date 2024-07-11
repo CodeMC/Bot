@@ -105,6 +105,8 @@ public class JenkinsAPI {
         String template = isFreestyle ? jenkinsFreestyleJob() : jenkinsMavenJob();
         if (template == null) return false;
 
+        template = template.replace("{PROJECT_URL}", "https://github.com/" + username + "/" + jobName);
+
         // Jenkins will automatically add job to the URL
         RequestStatus status = client.api().jobsApi().create(username, jobName, template);
         return status.value();
