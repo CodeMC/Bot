@@ -164,7 +164,7 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
 
-                boolean jobSuccess = bot.getJenkins().createJenkinsJob(username, project, freestyle);
+                boolean jobSuccess = bot.getJenkins().createJenkinsJob(username, project, repoLink, freestyle);
                 if (!jobSuccess) {
                     CommandUtil.EmbedReply.fromHook(hook)
                             .withError("Failed to create Jenkins job for " + username + "! Manual creation required.")

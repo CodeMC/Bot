@@ -101,11 +101,11 @@ public class JenkinsAPI {
         return status.value();
     }
 
-    public boolean createJenkinsJob(String username, String jobName, boolean isFreestyle){
+    public boolean createJenkinsJob(String username, String jobName, String repoLink, boolean isFreestyle){
         String template = isFreestyle ? jenkinsFreestyleJob() : jenkinsMavenJob();
         if (template == null) return false;
 
-        template = template.replace("{PROJECT_URL}", "https://github.com/" + username + "/" + jobName);
+        template = template.replace("{PROJECT_URL}", repoLink);
 
         // Jenkins will automatically add job to the URL
         RequestStatus status = client.api().jobsApi().create(username, jobName, template);
