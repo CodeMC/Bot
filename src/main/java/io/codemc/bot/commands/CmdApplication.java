@@ -124,7 +124,8 @@ public class CmdApplication extends BotCommand{
                     .send();
                 return;
             }
-            
+
+            String finalRepoLink = repoLink;
             channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
@@ -164,7 +165,7 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
 
-                boolean jobSuccess = bot.getJenkins().createJenkinsJob(username, project, repoLink, freestyle);
+                boolean jobSuccess = bot.getJenkins().createJenkinsJob(username, project, finalRepoLink, freestyle);
                 if (!jobSuccess) {
                     CommandUtil.EmbedReply.fromHook(hook)
                             .withError("Failed to create Jenkins job for " + username + "! Manual creation required.")
