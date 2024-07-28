@@ -47,7 +47,7 @@ public class CmdMsg extends BotCommand{
         this.name = "msg";
         this.help = "Sends a message in a specified channel or edits one.";
         
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "msg");
         
         this.children = new SlashCommand[]{
             new Post(bot),
@@ -69,7 +69,7 @@ public class CmdMsg extends BotCommand{
             this.name = "send";
             this.help = "Sends a message as the Bot.";
             
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "msg");
             this.hasModalReply = true;
             
             this.options = Arrays.asList(
@@ -91,9 +91,7 @@ public class CmdMsg extends BotCommand{
             boolean asEmbed = event.getOption("embed", false, OptionMapping::getAsBoolean);
             
             if(channel == null){
-                CommandUtil.EmbedReply.fromCommandEvent(event)
-                    .withError("Received invalid Channel input.")
-                    .send();
+                CommandUtil.EmbedReply.from(event).error("Received invalid Channel input.").send();
                 return;
             }
             
@@ -118,7 +116,7 @@ public class CmdMsg extends BotCommand{
             this.name = "edit";
             this.help = "Edit an existing message of the bot.";
             
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "msg");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "msg");
             this.hasModalReply = true;
             
             this.options = Arrays.asList(
@@ -147,9 +145,7 @@ public class CmdMsg extends BotCommand{
             boolean asEmbed = event.getOption("embed", false, OptionMapping::getAsBoolean);
             
             if(channel == null || messageId == -1L){
-                CommandUtil.EmbedReply.fromCommandEvent(event)
-                    .withError("Received invalid Channel or Message ID.")
-                    .send();
+                CommandUtil.EmbedReply.from(event).error("Received invalid Channel or Message ID.").send();
                 return;
             }
             

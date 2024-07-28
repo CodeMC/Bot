@@ -33,7 +33,7 @@ public class CmdReload extends BotCommand{
         this.name = "reload";
         this.help = "Reloads the configuration.";
         
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "reload");
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "reload");
     }
     
     @Override
@@ -41,13 +41,10 @@ public class CmdReload extends BotCommand{
         boolean success = bot.getConfigHandler().reloadConfig();
         
         if(success){
-            CommandUtil.EmbedReply.fromHook(hook)
-                .withMessage("Reload success!")
-                .asSuccess()
-                .send();
+            CommandUtil.EmbedReply.from(hook).success("Reload success!").send();
         }else{
-            CommandUtil.EmbedReply.fromHook(hook)
-                .withError("There was an issue while reloading the configuration! Check console.")
+            CommandUtil.EmbedReply.from(hook).error(
+                "There was an issue while reloading the configuration! Check console.")
                 .send();
         }
     }

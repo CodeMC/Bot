@@ -45,13 +45,16 @@ public class CmdSubmit extends BotCommand{
     
     @Override
     public void withModalReply(SlashCommandEvent event){
-        TextInput userLink = TextInput.create("userlink", "User Link", TextInputStyle.SHORT)
-            .setPlaceholder("https://github.com/CodeMC")
+        TextInput user = TextInput.create("user", "GitHub Username", TextInputStyle.SHORT)
+            .setPlaceholder("CodeMC")
             .setRequired(true)
             .build();
-        TextInput repoLink = TextInput.create("repolink", "Repository Link", TextInputStyle.SHORT)
-            .setPlaceholder("https://github.com/CodeMC/Bot")
+        TextInput repo = TextInput.create("repo", "Repository Name", TextInputStyle.SHORT)
+            .setPlaceholder("Bot")
             .setRequired(true)
+            .build();
+        TextInput repoLink = TextInput.create("repoLink", "Repository Link (Leave blank if on GitHub)", TextInputStyle.SHORT)
+            .setPlaceholder("https://git.example.com/CodeMC/Bot")
             .build();
         TextInput description = TextInput.create("description", "Description", TextInputStyle.PARAGRAPH)
             .setPlaceholder("Discord Bot for the CodeMC Server.")
@@ -61,7 +64,8 @@ public class CmdSubmit extends BotCommand{
         
         Modal modal = Modal.create("submit", "Join Request")
             .addComponents(
-                ActionRow.of(userLink),
+                ActionRow.of(user),
+                ActionRow.of(repo),
                 ActionRow.of(repoLink),
                 ActionRow.of(description)
             )

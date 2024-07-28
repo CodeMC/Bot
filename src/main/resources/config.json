@@ -8,10 +8,16 @@
   },
   "author_role": 0,
   "allowed_roles": {
-    "application": [],
-    "disable": [],
-    "msg": [],
-    "reload": []
+    "applications": {
+      "accept": [],
+      "deny": []
+    },
+    "commands": {
+      "application": [],
+      "disable": [],
+      "msg": [],
+      "reload": []
+    }
   },
   "users": {
     "owner": 0,

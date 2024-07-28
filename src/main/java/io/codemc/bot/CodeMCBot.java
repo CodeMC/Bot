@@ -21,8 +21,8 @@ package io.codemc.bot;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import io.codemc.bot.commands.*;
 import io.codemc.bot.config.ConfigHandler;
+import io.codemc.bot.listeners.ButtonListener;
 import io.codemc.bot.listeners.ModalListener;
-import io.codemc.bot.menu.ApplicationMenu;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -100,12 +100,6 @@ public class CodeMCBot{
             new CmdSubmit(this)
         );
         
-        logger.info("Adding Context Menus...");
-        clientBuilder.addContextMenus(
-            new ApplicationMenu.Accept(this),
-            new ApplicationMenu.Deny(this)
-        );
-        
         logger.info("Starting bot...");
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -120,6 +114,7 @@ public class CodeMCBot{
             ))
             .addEventListeners(
                 clientBuilder.build(),
+                new ButtonListener(this),
                 new ModalListener(this)
             )
             .build();

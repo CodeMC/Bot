@@ -37,7 +37,7 @@ public class CmdDisable extends BotCommand{
         this.name = "disable";
         this.help = "Disables the bot.";
         
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "disable");
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "disable");
     }
     
     @Override

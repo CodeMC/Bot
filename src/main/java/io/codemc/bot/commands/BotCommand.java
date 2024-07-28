@@ -44,30 +44,30 @@ public abstract class BotCommand extends SlashCommand{
     public void execute(SlashCommandEvent event){
         Guild guild = event.getGuild();
         if(guild == null){
-            CommandUtil.EmbedReply.fromCommandEvent(event)
-                .withError("Command can only be executed in a Server!")
+            CommandUtil.EmbedReply.from(event)
+                .error("Command can only be executed in a Server!")
                 .send();
             return;
         }
         
         if(guild.getIdLong() != bot.getConfigHandler().getLong("server")){
-            CommandUtil.EmbedReply.fromCommandEvent(event)
-                .withError("Unable to find CodeMC Server!")
+            CommandUtil.EmbedReply.from(event)
+                .error("Unable to find CodeMC Server!")
                 .send();
             return;
         }
         
         Member member = event.getMember();
         if(member == null){
-            CommandUtil.EmbedReply.fromCommandEvent(event)
-                .withError("Unable to retrieve Member from Event!")
+            CommandUtil.EmbedReply.from(event)
+                .error("Unable to retrieve Member from Event!")
                 .send();
             return;
         }
         
         if(!CommandUtil.hasRole(member, allowedRoles)){
-            CommandUtil.EmbedReply.fromCommandEvent(event)
-                .withError("You lack the permissions required to use this command!")
+            CommandUtil.EmbedReply.from(event)
+                .error("You lack the permissions required to use this command!")
                 .send();
             return;
         }

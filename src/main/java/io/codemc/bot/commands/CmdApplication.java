@@ -50,7 +50,7 @@ public class CmdApplication extends BotCommand{
         this.name = "application";
         this.help = "Accept or deny applications.";
         
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
         
         this.children = new SlashCommand[]{
             new Accept(bot),
@@ -67,28 +67,26 @@ public class CmdApplication extends BotCommand{
     public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
         TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channel", "request_access"));
         if(requestChannel == null){
-            CommandUtil.EmbedReply.fromHook(hook).withError("Unable to retrieve `request-access` channel.").send();
+            CommandUtil.EmbedReply.from(hook).error("Unable to retrieve `request-access` channel.").send();
             return;
         }
         
         requestChannel.retrieveMessageById(messageId).queue(message -> {
             List<MessageEmbed> embeds = message.getEmbeds();
             if(embeds.isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook).withError("Provided message does not have any embeds.").send();
+                CommandUtil.EmbedReply.from(hook).error("Provided message does not have any embeds.").send();
                 return;
             }
             
             MessageEmbed embed = embeds.get(0);
             if(embed.getFooter() == null || embed.getFields().isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook).withError(
-                    "Embed does not have a footer or any Embed Fields."
-                ).send();
+                CommandUtil.EmbedReply.from(hook).error("Embed does not have a footer or any Embed Fields.").send();
                 return;
             }
             
             String userId = embed.getFooter().getText();
             if(userId == null || userId.isEmpty()){
-                CommandUtil.EmbedReply.fromHook(hook).withError("Embed does not have a valid footer.").send();
+                CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
                 return;
             }
             
@@ -107,7 +105,7 @@ public class CmdApplication extends BotCommand{
             }
             
             if(userLink == null || repoLink == null){
-                CommandUtil.EmbedReply.fromHook(hook).withError("Embed does not have any valid Fields.").send();
+                CommandUtil.EmbedReply.from(hook).error("Embed does not have any valid Fields.").send();
                 return;
             }
             
@@ -116,8 +114,8 @@ public class CmdApplication extends BotCommand{
                 : bot.getConfigHandler().getLong("channels", "rejected_requests")
             );
             if(channel == null){
-                CommandUtil.EmbedReply.fromHook(hook)
-                    .withError("Unable to retrieve `" + (accepted ? "accepted" : "rejected") + "-requests` channel.")
+                CommandUtil.EmbedReply.from(hook)
+                    .error("Unable to retrieve `" + (accepted ? "accepted" : "rejected") + "-requests` channel.")
                     .send();
                 return;
             }
@@ -135,24 +133,23 @@ public class CmdApplication extends BotCommand{
                 Member member = guild.getMemberById(userId);
                 
                 if(!accepted){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withMessage("Denied Application of " + (member == null ? "Unknown" : member.getUser().getEffectiveName()) + "!")
-                        .asSuccess()
+                    CommandUtil.EmbedReply.from(hook)
+                        .success("Denied Application of " + (member == null ? "Unknown" : member.getUser().getEffectiveName()) + "!")
                         .send();
                     return;
                 }
                 
                 Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
                 if(authorRole == null){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Unable to retrieve Author Role!")
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Unable to retrieve Author Role!")
                         .send();
                     return;
                 }
                 
                 if(member == null){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Unable to apply Role. Member not found!")
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Unable to apply Role. Member not found!")
                         .send();
                     return;
                 }
@@ -160,15 +157,14 @@ public class CmdApplication extends BotCommand{
                 guild.addRoleToMember(member, authorRole)
                     .reason("[Access Request] Application accepted.")
                     .queue(
-                        v -> CommandUtil.EmbedReply.fromHook(hook)
-                            .withMessage("Accepted application of " + member.getUser().getEffectiveName() + "!")
-                            .asSuccess()
+                        v -> CommandUtil.EmbedReply.from(hook)
+                            .success("Accepted application of " + member.getUser().getEffectiveName() + "!")
                             .send(),
                         new ErrorHandler()
                             .handle(
                                 ErrorResponse.MISSING_PERMISSIONS,
-                                e -> CommandUtil.EmbedReply.fromHook(hook)
-                                    .withIssue("I lack the `Manage Roles` permission to apply the role.")
+                                e -> CommandUtil.EmbedReply.from(hook)
+                                    .appendWarning("I lack the `Manage Roles` permission to apply the role.")
                                     .send()
                             )
                     );
@@ -204,7 +200,7 @@ public class CmdApplication extends BotCommand{
             this.name = "accept";
             this.help = "Accept an application";
             
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -227,16 +223,14 @@ public class CmdApplication extends BotCommand{
             String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
             
             if(messageId == -1L || projectUrl == null){
-                CommandUtil.EmbedReply.fromHook(hook).withError(
-                    "Message ID or Project URL were not present!"
-                ).send();
+                CommandUtil.EmbedReply.from(hook).error("Message ID or Project URL were not present!").send();
                 return;
             }
             
             if(!projectUrlPattern.matcher(projectUrl).matches()){
-                CommandUtil.EmbedReply.fromHook(hook).withError(
-                    "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!"
-                ).send();
+                CommandUtil.EmbedReply.from(hook).error(
+                    "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
+                    .send();
                 return;
             }
             
@@ -252,7 +246,7 @@ public class CmdApplication extends BotCommand{
             this.name = "deny";
             this.help = "Deny an application";
             
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "application");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
@@ -265,19 +259,11 @@ public class CmdApplication extends BotCommand{
         
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-            long messageId = event.getOption("id", -1L, option -> {
-                try{
-                    return Long.parseLong(option.getAsString());
-                }catch(NumberFormatException ex){
-                    return -1L;
-                }
-            });
+            long messageId = event.getOption("id", -1L, OptionMapping::getAsLong);
             String reason = event.getOption("reason", null, OptionMapping::getAsString);
             
             if(messageId == -1L || reason == null){
-                CommandUtil.EmbedReply.fromHook(hook).withError(
-                    "Message ID or Reason were not present!"
-                ).send();
+                CommandUtil.EmbedReply.from(hook).error("Message ID or Reason were not present!").send();
                 return;
             }
             
