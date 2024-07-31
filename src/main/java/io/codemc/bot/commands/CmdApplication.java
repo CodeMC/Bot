@@ -256,8 +256,7 @@ public class CmdApplication extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.BOOLEAN, "freestyle", "Whether the project is freestyle. False if using Maven, True if using Gradle.").setRequired(true)
+                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
             );
         }
         
