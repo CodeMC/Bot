@@ -19,6 +19,9 @@
 package io.codemc.bot;
 
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
+import io.codemc.api.CodeMCAPI;
+import io.codemc.api.jenkins.JenkinsConfig;
+import io.codemc.api.nexus.NexusConfig;
 import io.codemc.bot.commands.*;
 import io.codemc.bot.config.ConfigHandler;
 import io.codemc.bot.listeners.ButtonListener;
@@ -90,6 +93,19 @@ public class CodeMCBot{
             
             clientBuilder.setCoOwnerIds(coOwnerIds);
         }
+
+        logger.info("Initializing API...");
+        JenkinsConfig jenkins = new JenkinsConfig(
+                configHandler.getString("jenkins", "url"),
+                configHandler.getString("jenkins", "username"),
+                configHandler.getString("jenkins", "password")
+        );
+        NexusConfig nexus = new NexusConfig(
+                configHandler.getString("nexus", "url"),
+                configHandler.getString("nexus", "username"),
+                configHandler.getString("nexus", "password")
+        );
+        CodeMCAPI.initialize(jenkins, nexus, JavaContinuation.UNIT);
         
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(
@@ -122,5 +138,9 @@ public class CodeMCBot{
     
     public ConfigHandler getConfigHandler(){
         return configHandler;
+    }
+
+    public Logger getLogger() {
+        return logger;
     }
 }

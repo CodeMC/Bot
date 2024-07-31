@@ -20,7 +20,11 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.api.Generator;
+import io.codemc.api.jenkins.JenkinsAPI;
+import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.JavaContinuation;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -38,11 +42,16 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
+import javax.swing.text.html.Option;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
+
+    public static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^https://github\\.com/([^/]+)/([^/]+?)(?:\\.git)?(?:/.*)?$");
     
     public CmdApplication(CodeMCBot bot){
         super(bot);
@@ -119,8 +128,20 @@ public class CmdApplication extends BotCommand{
                     .send();
                 return;
             }
+
+            Matcher matcher = GITHUB_URL_PATTERN.matcher(repoLink);
+            if (!matcher.matches()) {
+                CommandUtil.EmbedReply.from(hook)
+                        .error("The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
+                        .send();
+                return;
+            }
+
+            String username = matcher.group(1);
+            String project = matcher.group(2);
+            String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/" + project + "/";
             
-            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str, accepted)).queue(m -> {
+            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
                     thread.getManager().setArchived(true)
@@ -169,11 +190,45 @@ public class CmdApplication extends BotCommand{
                             )
                     );
             });
+
+            String password = Generator.createPassword(24);
+
+            CompletableFuture<Boolean> nexus = new CompletableFuture<>();
+            nexus.handle((v, ex) -> {
+                if(!v){
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to create Nexus Repository!")
+                        .send();
+
+                    bot.getLogger().error("Failed to create Nexus Repository for {}!", username, ex);
+                    return false;
+                }
+                
+                return true;
+            });
+            NexusAPI.createNexus(username, password, JavaContinuation.create(nexus));
+
+            CompletableFuture<Boolean> isFreestyle = new CompletableFuture<>();
+            String fRepoLink = repoLink;
+            isFreestyle.handle((freestyle, ex) -> {
+                if (ex != null) {
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to determine if the project is freestyle!")
+                        .send();
+
+                    bot.getLogger().error("Failed to determine if the project is freestyle for {}!", username, ex);
+                    return false;
+                }
+
+                JenkinsAPI.createJenkinsUser(username, password);
+                JenkinsAPI.createJenkinsJob(username, project, fRepoLink, freestyle);
+                return true;
+            });
+            JenkinsAPI.isFreestyle(username, project, JavaContinuation.create(isFreestyle));
         });
     }
     
     private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, boolean accepted){
-        
         String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied"))); 
         
         MessageEmbed embed = new EmbedBuilder()
@@ -191,9 +246,7 @@ public class CmdApplication extends BotCommand{
     }
     
     private static class Accept extends BotCommand{
-        
-        private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
-        
+
         public Accept(CodeMCBot bot){
             super(bot);
             
@@ -204,7 +257,7 @@ public class CmdApplication extends BotCommand{
             
             this.options = Arrays.asList(
                 new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true)
+                new OptionData(OptionType.BOOLEAN, "freestyle", "Whether the project is freestyle. False if using Maven, True if using Gradle.").setRequired(true)
             );
         }
         
@@ -220,21 +273,13 @@ public class CmdApplication extends BotCommand{
                     return -1L;
                 }
             });
-            String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
-            
-            if(messageId == -1L || projectUrl == null){
-                CommandUtil.EmbedReply.from(hook).error("Message ID or Project URL were not present!").send();
+
+            if(messageId == -1L){
+                CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
                 return;
             }
             
-            if(!projectUrlPattern.matcher(projectUrl).matches()){
-                CommandUtil.EmbedReply.from(hook).error(
-                    "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
-                    .send();
-                return;
-            }
-            
-            handle(bot, hook, guild, messageId, projectUrl, true);
+            handle(bot, hook, guild, messageId, null, true);
         }
     }
     

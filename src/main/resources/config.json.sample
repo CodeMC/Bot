@@ -57,5 +57,15 @@
       "",
       "You may re-apply unless mentioned otherwise in the Reason."
     ]
+  },
+  "jenkins": {
+    "url": "https://ci.codemc.io",
+    "username": "admin",
+    "password": "password"
+  },
+  "nexus": {
+    "url": "https://repo.codemc.io",
+    "username": "admin",
+    "password": "password"
   }
 }

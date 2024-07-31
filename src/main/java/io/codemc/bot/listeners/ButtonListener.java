@@ -90,8 +90,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                // TODO: Add project URL here (Maybe move application handling from CmdApplication)
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "", true)
+                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), null, true)
             );
         }else{
             if(lacksRole(roleIds, denyApplicationRoles)){
@@ -100,8 +99,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                // TODO: Add project URL here (Maybe move application handling from CmdApplication)
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "", false)
+                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), null, false)
             );
         }
     }

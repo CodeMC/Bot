@@ -26,5 +26,15 @@
   "messages": {
     "accepted": [],
     "denied": []
+  },
+  "jenkins": {
+    "url": "",
+    "username": "",
+    "password": ""
+  },
+  "nexus": {
+    "url": "",
+    "username": "",
+    "password": ""
   }
 }

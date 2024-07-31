@@ -247,15 +247,7 @@ public class ModalListener extends ListenerAdapter{
                 
                 boolean accepted = args[1].equals("accepted");
                 
-                String text = value(event, "text");
-                if(text == null || text.isEmpty()){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received invalid " + (accepted ? "Project URL" : "Reason") + ". Text was empty/null.")
-                        .send();
-                    return;
-                }
-                
-                CmdApplication.handle(bot, hook, guild, messageId, text, accepted);
+                CmdApplication.handle(bot, hook, guild, messageId, null, accepted);
             });
             
             default -> CommandUtil.EmbedReply.from(event)
