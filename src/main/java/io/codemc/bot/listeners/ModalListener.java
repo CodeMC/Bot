@@ -215,40 +215,6 @@ public class ModalListener extends ListenerAdapter{
                         .send();
                 }
             });
-                
-            case "application" -> event.deferReply(true).queue(hook -> {
-                if(args.length < 3){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Invalid Modal data. Expected `3` args but received `" + args.length + "`!")
-                        .send();
-                    return;
-                }
-                
-                if(!args[1].equals("accepted") && !args[1].equals("denied")){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received unknown Application type. Expected `accepted` or `denied` but received `" + args[1] + "`.")
-                        .send();
-                    return;
-                }
-                
-                long messageId;
-                try{
-                    messageId = Long.parseLong(args[2]);
-                }catch(NumberFormatException ex){
-                    messageId = -1L;
-                }
-                
-                if(messageId == -1L){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received Invalid Message ID. Expected number but got `" + args[2] + "` instead!")
-                        .send();
-                    return;
-                }
-                
-                boolean accepted = args[1].equals("accepted");
-                
-                CmdApplication.handle(bot, hook, guild, messageId, null, accepted);
-            });
             
             default -> CommandUtil.EmbedReply.from(event)
                 .error("Received Modal with unknown ID `" + event.getModalId() + "`.")

@@ -139,8 +139,4 @@ public class CodeMCBot{
     public ConfigHandler getConfigHandler(){
         return configHandler;
     }
-
-    public Logger getLogger() {
-        return logger;
-    }
 }

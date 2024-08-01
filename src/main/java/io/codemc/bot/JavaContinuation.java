@@ -13,6 +13,10 @@ import java.util.concurrent.CompletableFuture;
 public class JavaContinuation<T> implements Continuation<T> {
     public static final JavaContinuation<Unit> UNIT = new JavaContinuation<>(CompletableFuture.completedFuture(Unit.INSTANCE));
 
+    public static <T> JavaContinuation<T> create(CompletableFuture<T> future) {
+        return new JavaContinuation<>(future);
+    }
+
     private final CompletableFuture<T> future;
 
     public JavaContinuation(CompletableFuture<T> future) {
@@ -32,9 +36,5 @@ public class JavaContinuation<T> implements Continuation<T> {
     @Override
     public CoroutineContext getContext() {
         return Dispatchers.getIO();
-    }
-
-    public static <T> JavaContinuation<T> create(CompletableFuture<T> future) {
-        return new JavaContinuation<>(future);
     }
 }

@@ -41,8 +41,9 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.swing.text.html.Option;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -51,8 +52,10 @@ import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
 
-    public static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^https://github\\.com/([^/]+)/([^/]+?)(?:\\.git)?(?:/.*)?$");
-    
+    public static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^https://github\\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-_.]+?)(?:\\.git)?(?:/.*)?$");
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CmdApplication.class);
+
     public CmdApplication(CodeMCBot bot){
         super(bot);
         
@@ -132,7 +135,7 @@ public class CmdApplication extends BotCommand{
             Matcher matcher = GITHUB_URL_PATTERN.matcher(repoLink);
             if (!matcher.matches()) {
                 CommandUtil.EmbedReply.from(hook)
-                        .error("The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
+                        .error("The user/organisation or repository name is invalid!")
                         .send();
                 return;
             }
@@ -194,13 +197,13 @@ public class CmdApplication extends BotCommand{
             String password = Generator.createPassword(24);
 
             CompletableFuture<Boolean> nexus = new CompletableFuture<>();
-            nexus.handle((v, ex) -> {
-                if(!v){
+            nexus.handleAsync((success, ex) -> {
+                if(!success){
                     CommandUtil.EmbedReply.from(hook)
                         .error("Failed to create Nexus Repository!")
                         .send();
 
-                    bot.getLogger().error("Failed to create Nexus Repository for {}!", username, ex);
+                    LOGGER.error("Failed to create Nexus Repository for {}!", username, ex);
                     return false;
                 }
                 
@@ -210,18 +213,32 @@ public class CmdApplication extends BotCommand{
 
             CompletableFuture<Boolean> isFreestyle = new CompletableFuture<>();
             String fRepoLink = repoLink;
-            isFreestyle.handle((freestyle, ex) -> {
+            isFreestyle.handleAsync((freestyle, ex) -> {
                 if (ex != null) {
                     CommandUtil.EmbedReply.from(hook)
                         .error("Failed to determine if the project is freestyle!")
                         .send();
 
-                    bot.getLogger().error("Failed to determine if the project is freestyle for {}!", username, ex);
+                    LOGGER.error("Failed to determine if the project is freestyle for {}!", username, ex);
                     return false;
                 }
 
-                JenkinsAPI.createJenkinsUser(username, password);
-                JenkinsAPI.createJenkinsJob(username, project, fRepoLink, freestyle);
+                boolean userSuccess = JenkinsAPI.createJenkinsUser(username, password);
+                if (!userSuccess) {
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to create Jenkins User for {}!", username)
+                        .send();
+                    return false;
+                }
+
+                boolean jobSuccess = JenkinsAPI.createJenkinsJob(username, project, fRepoLink, freestyle);
+                if (!jobSuccess) {
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to create Jenkins Job '{}' for {}!", project, username)
+                        .send();
+                    return false;
+                }
+
                 return true;
             });
             JenkinsAPI.isFreestyle(username, project, JavaContinuation.create(isFreestyle));
@@ -265,13 +282,7 @@ public class CmdApplication extends BotCommand{
         
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-            long messageId = event.getOption("id", -1L, option -> {
-                try{
-                    return Long.parseLong(option.getAsString());
-                }catch(NumberFormatException ex){
-                    return -1L;
-                }
-            });
+            long messageId = event.getOption("id", -1L, OptionMapping::getAsLong);
 
             if(messageId == -1L){
                 CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
