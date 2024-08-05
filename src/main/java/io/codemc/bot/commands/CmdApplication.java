@@ -198,7 +198,7 @@ public class CmdApplication extends BotCommand{
 
             CompletableFuture<Boolean> nexus = new CompletableFuture<>();
             nexus.handleAsync((success, ex) -> {
-                if(!success){
+                if(ex != null){
                     CommandUtil.EmbedReply.from(hook)
                         .error("Failed to create Nexus Repository!")
                         .send();
