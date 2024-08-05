@@ -228,6 +228,8 @@ public class CmdApplication extends BotCommand{
                     CommandUtil.EmbedReply.from(hook)
                         .error("Failed to create Jenkins User for {}!", username)
                         .send();
+
+                    LOGGER.error("Failed to create Jenkins User for {}!", username);
                     return false;
                 }
 
@@ -236,12 +238,24 @@ public class CmdApplication extends BotCommand{
                     CommandUtil.EmbedReply.from(hook)
                         .error("Failed to create Jenkins Job '{}' for {}!", project, username)
                         .send();
+
+                    LOGGER.error("Failed to create Jenkins Job '{}' for {}!", project, username);
+                    return false;
+                }
+
+                boolean triggerBuild = JenkinsAPI.triggerBuild(username, project);
+                if (!triggerBuild) {
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to trigger Jenkins Build for {}!", username)
+                        .send();
+
+                    LOGGER.error("Failed to trigger Jenkins Build for {}!", username);
                     return false;
                 }
 
                 return true;
             });
-            JenkinsAPI.isFreestyle(username, project, JavaContinuation.create(isFreestyle));
+            JenkinsAPI.isFreestyle(repoLink, JavaContinuation.create(isFreestyle));
         });
     }
     
