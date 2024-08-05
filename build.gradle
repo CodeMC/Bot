@@ -32,7 +32,6 @@ repositories {
     maven { url = 'https://jitpack.io' }
     maven { url = 'https://repo.codemc.io/repository/maven-public' }
     maven { url = 'https://m2.chew.pro/releases' }
-    maven { url = 'https://repo.codemc.io/repository/maven-public'}
 }
 
 dependencies {
