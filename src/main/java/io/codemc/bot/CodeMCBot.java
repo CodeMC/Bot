@@ -113,7 +113,8 @@ public class CodeMCBot{
             new CmdDisable(this),
             new CmdMsg(this),
             new CmdReload(this),
-            new CmdSubmit(this)
+            new CmdSubmit(this),
+            new CmdRemove(this)
         );
         
         logger.info("Starting bot...");
