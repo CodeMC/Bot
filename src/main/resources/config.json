@@ -14,7 +14,7 @@
     },
     "commands": {
       "application": [],
-      "service": [],
+      "remove": [],
       "disable": [],
       "msg": [],
       "reload": []

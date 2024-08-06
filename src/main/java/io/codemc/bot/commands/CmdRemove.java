@@ -49,11 +49,13 @@ public class CmdRemove extends BotCommand{
         this.name = "remove";
         this.help = "Revoke a user's Author status.";
 
-        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+        this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "remove");
+
 
         this.options = List.of(
                 new OptionData(OptionType.USER, "user", "The user that is having their status revoked.").setRequired(true),
-                new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user. If blank, defaults to their server nickname.").setRequired(false)
+                new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user. If blank, defaults to their server nickname.").setRequired(true)
+
         );
     }
 
@@ -69,7 +71,12 @@ public class CmdRemove extends BotCommand{
             return;
         }
 
-        String username = event.getOption("username", user.getNickname(), OptionMapping::getAsString);
+        String username = event.getOption("username", null, OptionMapping::getAsString);
+        
+        if (username == null || username.isEmpty()) {
+            CommandUtil.EmbedReply.from(hook).error("Invalid CI User provided!").send();
+            return;
+        }
         Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
 
         if (authorRole == null) {
@@ -105,10 +112,11 @@ public class CmdRemove extends BotCommand{
         NexusAPI.deleteNexus(username, JavaContinuation.create(deleted));
 
         guild.removeRoleFromMember(user, authorRole)
-                .reason("[Access Request] Author Status revoked by " + member.getUser().getAsTag())
+                .reason("[Access Request] Author Status revoked by " + user.getUser().getAsTag())
                 .queue(
                         v -> CommandUtil.EmbedReply.from(hook)
-                                .success("Revoked Author Status from " + member.getUser().getEffectiveName() + "!")
+                                .success("Revoked Author Status from " + user.getUser().getEffectiveName() + "!")
+
                                 .send(),
                         new ErrorHandler()
                                 .handle(
