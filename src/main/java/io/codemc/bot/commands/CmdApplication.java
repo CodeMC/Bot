@@ -20,11 +20,10 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-import io.codemc.api.Generator;
-import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.JavaContinuation;
+import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -44,7 +43,6 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -194,68 +192,9 @@ public class CmdApplication extends BotCommand{
                     );
             });
 
-            String password = Generator.createPassword(24);
-
-            CompletableFuture<Boolean> nexus = new CompletableFuture<>();
-            nexus.handleAsync((success, ex) -> {
-                if(ex != null){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to create Nexus Repository!")
-                        .send();
-
-                    LOGGER.error("Failed to create Nexus Repository for {}!", username, ex);
-                    return false;
-                }
-                
-                return true;
-            });
-            NexusAPI.createNexus(username, password, JavaContinuation.create(nexus));
-
-            CompletableFuture<Boolean> isFreestyle = new CompletableFuture<>();
-            String fRepoLink = repoLink;
-            isFreestyle.handleAsync((freestyle, ex) -> {
-                if (ex != null) {
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to determine if the project is freestyle!")
-                        .send();
-
-                    LOGGER.error("Failed to determine if the project is freestyle for {}!", username, ex);
-                    return false;
-                }
-
-                boolean userSuccess = JenkinsAPI.createJenkinsUser(username, password);
-                if (!userSuccess) {
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to create Jenkins User for {}!", username)
-                        .send();
-
-                    LOGGER.error("Failed to create Jenkins User for {}!", username);
-                    return false;
-                }
-
-                boolean jobSuccess = JenkinsAPI.createJenkinsJob(username, project, fRepoLink, freestyle);
-                if (!jobSuccess) {
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to create Jenkins Job '{}' for {}!", project, username)
-                        .send();
-
-                    LOGGER.error("Failed to create Jenkins Job '{}' for {}!", project, username);
-                    return false;
-                }
-
-                boolean triggerBuild = JenkinsAPI.triggerBuild(username, project);
-                if (!triggerBuild) {
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to trigger Jenkins Build for {}!", username)
-                        .send();
-
-                    LOGGER.error("Failed to trigger Jenkins Build for {}!", username);
-                    return false;
-                }
-
-                return true;
-            });
-            JenkinsAPI.isFreestyle(repoLink, JavaContinuation.create(isFreestyle));
+            String password = APIUtil.newPassword();
+            APIUtil.createNexus(hook, username, password);
+            APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
         });
     }
     
@@ -286,8 +225,8 @@ public class CmdApplication extends BotCommand{
             
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
-            this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
             );
         }
         
@@ -317,9 +256,9 @@ public class CmdApplication extends BotCommand{
             
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
-            this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
+                    new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
             );
         }
         
