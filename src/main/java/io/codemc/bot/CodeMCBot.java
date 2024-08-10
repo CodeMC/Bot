@@ -114,7 +114,7 @@ public class CodeMCBot{
             new CmdMsg(this),
             new CmdReload(this),
             new CmdSubmit(this),
-            new CmdRemove(this)
+            new CmdCodeMC(this)
         );
         
         logger.info("Starting bot...");
