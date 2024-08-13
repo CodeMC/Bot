@@ -20,6 +20,7 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.JavaContinuation;
@@ -141,7 +142,8 @@ public class CmdApplication extends BotCommand{
             String username = matcher.group(1);
             String project = matcher.group(2);
             String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/" + project + "/";
-            
+            Member member = guild.getMemberById(userId);
+
             channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
@@ -151,8 +153,6 @@ public class CmdApplication extends BotCommand{
                 }
                 
                 message.delete().queue();
-                
-                Member member = guild.getMemberById(userId);
                 
                 if(!accepted){
                     CommandUtil.EmbedReply.from(hook)
@@ -195,6 +195,7 @@ public class CmdApplication extends BotCommand{
             String password = APIUtil.newPassword();
             APIUtil.createNexus(hook, username, password);
             APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
+            DatabaseAPI.addUser(username, member.getIdLong());
         });
     }
     

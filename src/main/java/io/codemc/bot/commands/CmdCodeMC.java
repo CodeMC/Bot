@@ -20,6 +20,8 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.api.database.DatabaseAPI;
+import io.codemc.api.database.User;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.jenkins.JenkinsJob;
 import io.codemc.api.nexus.NexusAPI;
@@ -64,7 +66,8 @@ public class CmdCodeMC extends BotCommand{
                 new Jenkins(bot),
                 new Nexus(bot),
                 new Remove(bot),
-                new Validate(bot)
+                new Validate(bot),
+                new Link(bot)
         };
     }
 
@@ -117,8 +120,8 @@ public class CmdCodeMC extends BotCommand{
             if (info.getLastBuild() != null)
                 embed.addField("Last Build", info.getLastBuild().toString(), false);
 
-            if (info.getLastCompleteBuild() != null)
-                embed.addField("Last Complete Build", info.getLastCompleteBuild().toString(), false);
+            if (info.getLastCompletedBuild() != null)
+                embed.addField("Last Complete Build", info.getLastCompletedBuild().toString(), false);
 
             if (info.getLastFailedBuild() != null)
                 embed.addField("Last Failed Build", info.getLastFailedBuild().toString(), false);
@@ -232,6 +235,7 @@ public class CmdCodeMC extends BotCommand{
                 }
             });
             NexusAPI.deleteNexus(username, JavaContinuation.create(deleted));
+            DatabaseAPI.removeUser(username);
 
             Member user = event.getOption("discord", null, OptionMapping::getAsMember);
             if (user == null) return;
@@ -267,7 +271,7 @@ public class CmdCodeMC extends BotCommand{
         }
     }
 
-    private static class Validate extends BotCommand {
+    private static class Validate extends BotCommand{
 
         public Validate(CodeMCBot bot) {
             super(bot);
@@ -316,6 +320,49 @@ public class CmdCodeMC extends BotCommand{
 
                 return Unit.INSTANCE;
             }, JavaContinuation.UNIT);
+        }
+    }
+
+    private static class Link extends BotCommand{
+
+        public Link(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "link";
+            this.help = "Links a Discord User to a Jenkins/Nexus User. If it currently exists, it will be overridden.";
+
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "username", "The target username to link.").setRequired(true),
+                    new OptionData(OptionType.USER, "discord", "The discord user to link to the username.").setRequired(true)
+            );
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {
+        }
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            String username = event.getOption("username", null, OptionMapping::getAsString);
+            Member target = event.getOption("discord", null, OptionMapping::getAsMember);
+
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Jenkins User provided!").send();
+                return;
+            }
+
+            if (target == null) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Discord User provided!").send();
+                return;
+            }
+
+            User dbUser = DatabaseAPI.getUser(username);
+            if (dbUser == null)
+                DatabaseAPI.addUser(username, target.getIdLong());
+            else
+                DatabaseAPI.updateUser(username, target.getIdLong());
         }
     }
 }
