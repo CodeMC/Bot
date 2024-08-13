@@ -20,6 +20,7 @@ package io.codemc.bot;
 
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import io.codemc.api.CodeMCAPI;
+import io.codemc.api.database.DBConfig;
 import io.codemc.api.jenkins.JenkinsConfig;
 import io.codemc.api.nexus.NexusConfig;
 import io.codemc.bot.commands.*;
@@ -105,7 +106,16 @@ public class CodeMCBot{
                 configHandler.getString("nexus", "username"),
                 configHandler.getString("nexus", "password")
         );
-        CodeMCAPI.initialize(jenkins, nexus, JavaContinuation.UNIT);
+
+        String dbService = configHandler.getString("database", "service");
+        String dbHost = configHandler.getString("database", "host");
+        int dbPort = configHandler.getInt("database", "port");
+        DBConfig db = new DBConfig(
+                "jdbc:" + dbService + "://" + dbHost + ":" + dbPort + "/" + configHandler.getString("database", "database"),
+                configHandler.getString("database", "username"),
+                configHandler.getString("database", "password")
+        );
+        CodeMCAPI.initialize(jenkins, nexus, db, JavaContinuation.UNIT);
         
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(

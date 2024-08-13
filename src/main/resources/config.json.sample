@@ -65,10 +65,18 @@
   "jenkins": {
     "url": "https://ci.codemc.io",
     "username": "admin",
-    "password": "password"
+    "token": "api_token"
   },
   "nexus": {
     "url": "https://repo.codemc.io",
+    "username": "admin",
+    "password": "password"
+  },
+  "database": {
+    "service": "mariadb",
+    "host": "db.codemc.io",
+    "port": 3306,
+    "database": "codemc",
     "username": "admin",
     "password": "password"
   }

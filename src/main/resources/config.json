@@ -31,10 +31,18 @@
   "jenkins": {
     "url": "",
     "username": "",
-    "password": ""
+    "token": ""
   },
   "nexus": {
     "url": "",
+    "username": "",
+    "password": ""
+  },
+  "database": {
+    "service": "",
+    "host": "",
+    "port": 0,
+    "database": "",
     "username": "",
     "password": ""
   }
