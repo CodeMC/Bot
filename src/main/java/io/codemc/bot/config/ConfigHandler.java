@@ -82,6 +82,10 @@ public class ConfigHandler{
     public long getLong(Object... path){
         return node.node(path).getLong(-1L);
     }
+
+    public int getInt(Object... path){
+        return node.node(path).getInt(-1);
+    }
     
     public List<Long> getLongList(Object... path){
         try{
