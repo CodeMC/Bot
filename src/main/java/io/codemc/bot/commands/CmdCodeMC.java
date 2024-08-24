@@ -57,7 +57,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CmdCodeMC extends BotCommand {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CmdApplication.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
+
 
     public CmdCodeMC(CodeMCBot bot) {
         super(bot);
@@ -137,7 +138,7 @@ public class CmdCodeMC extends BotCommand {
             if (info.getLastStableBuild() != null)
                 embed.addField("Last Stable Build", info.getLastStableBuild().toString(), false);
 
-            event.replyEmbeds(embed.build()).setEphemeral(true).queue();
+            hook.editOriginalEmbeds(embed.build).queue();
         }
     }
 
@@ -209,11 +210,11 @@ public class CmdCodeMC extends BotCommand {
             this.name = "remove";
             this.help = "Remove a user from a CodeMC Service.";
 
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "The discord user that is having their status revoked. Leave blank if the user is no longer in the server.").setRequired(false)
+                    new OptionData(OptionType.USER, "discord", "The discord user that is having their status revoked. Leave blank if the user is no longer in the server.")
             );
         }
 
@@ -266,7 +267,7 @@ public class CmdCodeMC extends BotCommand {
             }
 
             guild.removeRoleFromMember(user, authorRole)
-                    .reason("[Access Request] Author Status revoked by " + user.getUser().getAsTag())
+                    .reason("[Access Request] Author Status revoked by " + member.getUser().getEffectiveName())
                     .queue(
                             v -> CommandUtil.EmbedReply.from(hook)
                                     .success("Revoked Author Status from " + user.getUser().getEffectiveName() + "!")
@@ -290,10 +291,10 @@ public class CmdCodeMC extends BotCommand {
             this.name = "validate";
             this.help = "Validates the existence of current API services for specific users.";
 
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "username", "The target username to validate. If left blank, validates all existing Jenkins users.").setRequired(false)
+                    new OptionData(OptionType.STRING, "username", "The target username to validate. If left blank, validates all existing Jenkins users.")
             );
         }
 
@@ -352,7 +353,7 @@ public class CmdCodeMC extends BotCommand {
             this.name = "link";
             this.help = "Links a Discord User to a Jenkins/Nexus User. If it currently exists, it will be overridden.";
 
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "username", "The Jenkins user to validate to.").setRequired(true),
@@ -395,7 +396,8 @@ public class CmdCodeMC extends BotCommand {
             else
                 DatabaseAPI.updateUser(username, target.getIdLong());
 
-            CommandUtil.EmbedReply.from(hook).success("Linked " + target.getUser().getAsTag() + " to " + username + "!").send();
+            CommandUtil.EmbedReply.from(hook).success("Linked Discord User " + target.getUser().getEffectiveName() + " to Jenkins User " + username + "!").send();
+
         }
     }
 
@@ -407,7 +409,7 @@ public class CmdCodeMC extends BotCommand {
             this.name = "unlink";
             this.help = "Unlinks a discord user from their Jenkins/Nexus account.";
 
-            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
                     new OptionData(OptionType.USER, "discord", "The discord user to unlink.").setRequired(true)
@@ -438,7 +440,8 @@ public class CmdCodeMC extends BotCommand {
             }
 
             DatabaseAPI.removeUser(username);
-            CommandUtil.EmbedReply.from(hook).success("Unlinked " + target.getUser().getAsTag() + " from their Jenkins/Nexus account!").send();
+            CommandUtil.EmbedReply.from(hook).success("Unlinked Discord User " + target.getUser().getEffectiveName() + " from their Jenkins/Nexus account!").send();
+
         }
     }
 

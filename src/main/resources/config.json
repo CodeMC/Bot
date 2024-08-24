@@ -14,7 +14,7 @@
     },
     "commands": {
       "application": [],
-      "service": [],
+      "codemc": [],
       "disable": [],
       "msg": [],
       "reload": []
