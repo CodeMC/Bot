@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class APIUtil {
 
-    public static final int PASSWORD_SIZE = 24;
+    public static final int PASSWORD_SIZE = 32;
     private static final Logger LOGGER = LoggerFactory.getLogger(APIUtil.class);
 
     public APIUtil() {}
@@ -78,6 +78,38 @@ public class APIUtil {
             }
         });
         JenkinsAPI.isFreestyle(repoLink, JavaContinuation.create(isFreestyle));
+    }
+
+    public static void changePassword(InteractionHook hook, String username, String newPassword) {
+        CompletableFuture<Boolean> changeNexusPassword = new CompletableFuture<>();
+        changeNexusPassword.whenCompleteAsync((nexusSuccess, nexusEx) -> {
+            if (nexusEx != null || (nexusSuccess != null && !nexusSuccess)){
+                if (hook != null)
+                    CommandUtil.EmbedReply.from(hook)
+                            .error("Failed to change Nexus Repository password!")
+                            .send();
+
+                LOGGER.error("Failed to change Nexus Repository password for {}!", username, nexusEx);
+            }
+
+            CompletableFuture<Boolean> changeJenkinsPassword = new CompletableFuture<>();
+            changeJenkinsPassword.whenCompleteAsync((jenkinsSuccess, jenkinsEx) -> {
+                if (jenkinsEx != null || (jenkinsSuccess != null && !jenkinsSuccess)){
+                    if (hook != null)
+                        CommandUtil.EmbedReply.from(hook)
+                                .error("Failed to change Jenkins password!")
+                                .send();
+
+                    LOGGER.error("Failed to change Jenkins password for {}!", username, jenkinsEx);
+                }
+
+                if (hook != null)
+                    CommandUtil.EmbedReply.from(hook)
+                            .success("Successfully changed your password!")
+                            .send();
+            });
+        });
+        NexusAPI.changeNexusPassword(username, newPassword, JavaContinuation.create(changeNexusPassword));
     }
 
 }

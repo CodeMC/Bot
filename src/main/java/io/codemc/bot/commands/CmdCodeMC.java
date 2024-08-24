@@ -31,6 +31,8 @@ import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
 import kotlin.Unit;
 import kotlinx.coroutines.BuildersKt;
+import kotlinx.coroutines.CoroutineScope;
+import kotlinx.coroutines.CoroutineStart;
 import kotlinx.coroutines.Dispatchers;
 import kotlinx.serialization.json.JsonObject;
 import kotlinx.serialization.json.JsonPrimitive;
@@ -51,12 +53,13 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class CmdCodeMC extends BotCommand{
+public class CmdCodeMC extends BotCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmdApplication.class);
 
-    public CmdCodeMC(CodeMCBot bot){
+    public CmdCodeMC(CodeMCBot bot) {
         super(bot);
 
         this.name = "codemc";
@@ -67,17 +70,21 @@ public class CmdCodeMC extends BotCommand{
                 new Nexus(bot),
                 new Remove(bot),
                 new Validate(bot),
-                new Link(bot)
+                new Link(bot),
+                new Unlink(bot),
+                new ChangePassword(bot)
         };
     }
 
     @Override
-    public void withModalReply(SlashCommandEvent event){}
+    public void withModalReply(SlashCommandEvent event) {
+    }
 
     @Override
-    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+    }
 
-    private static class Jenkins extends BotCommand{
+    private static class Jenkins extends BotCommand {
 
         public Jenkins(CodeMCBot bot) {
             super(bot);
@@ -91,7 +98,8 @@ public class CmdCodeMC extends BotCommand{
         }
 
         @Override
-        public void withModalReply(SlashCommandEvent event) {}
+        public void withModalReply(SlashCommandEvent event) {
+        }
 
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
@@ -147,7 +155,8 @@ public class CmdCodeMC extends BotCommand{
         }
 
         @Override
-        public void withModalReply(SlashCommandEvent event) {}
+        public void withModalReply(SlashCommandEvent event) {
+        }
 
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
@@ -192,7 +201,7 @@ public class CmdCodeMC extends BotCommand{
         }
     }
 
-    private static class Remove extends BotCommand{
+    private static class Remove extends BotCommand {
 
         public Remove(CodeMCBot bot) {
             super(bot);
@@ -209,10 +218,11 @@ public class CmdCodeMC extends BotCommand{
         }
 
         @Override
-        public void withModalReply(SlashCommandEvent event){}
+        public void withModalReply(SlashCommandEvent event) {
+        }
 
         @Override
-        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String username = event.getOption("username", null, OptionMapping::getAsString);
 
             if (username == null || username.isEmpty()) {
@@ -225,6 +235,7 @@ public class CmdCodeMC extends BotCommand{
                 return;
             }
 
+            DatabaseAPI.removeUser(username);
             JenkinsAPI.deleteUser(username);
 
             CompletableFuture<Boolean> deleted = new CompletableFuture<>();
@@ -287,21 +298,29 @@ public class CmdCodeMC extends BotCommand{
         }
 
         @Override
-        public void withModalReply(SlashCommandEvent event) {
-        }
+        public void withModalReply(SlashCommandEvent event) {}
 
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
-            String username = event.getOption("username", null, OptionMapping::getAsString);
-            if (username == null) {
-                JenkinsAPI.getAllJenkinsUsers().forEach(Validate::validate);
-            } else {
-                validate(username);
-            }
+            AtomicInteger count = new AtomicInteger(0);
+
+            BuildersKt.withContext(Dispatchers.getIO(), (scope, continuation) -> {
+                String username = event.getOption("username", null, OptionMapping::getAsString);
+                if (username == null) {
+                    JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(scope, user, count::incrementAndGet));
+                    CommandUtil.EmbedReply.from(hook).success("Validating all Jenkins Users...").send();
+                } else {
+                    validate(scope, username, count::incrementAndGet);
+                }
+
+                return Unit.INSTANCE;
+            }, JavaContinuation.UNIT);
+
+            CommandUtil.EmbedReply.from(hook).success("Successfully validated " + count.get() + " User(s)").send();
         }
 
-        private static void validate(String username) {
-            BuildersKt.withContext(Dispatchers.getIO(), (scope, continuation) -> {
+        private static void validate(CoroutineScope scope, String username, Runnable callback) {
+            BuildersKt.launch(scope, Dispatchers.getIO(), CoroutineStart.DEFAULT, (launch, continuation) -> {
                 String password = APIUtil.newPassword();
 
                 String jenkins = JenkinsAPI.getJenkinsUser(username);
@@ -310,16 +329,18 @@ public class CmdCodeMC extends BotCommand{
 
                 CompletableFuture<JsonObject> nexus = new CompletableFuture<>();
                 nexus.whenCompleteAsync((info, ex) -> {
-                    if(ex != null)
+                    if (ex != null)
                         LOGGER.error("Failed to validate Nexus Repository for {}!", username, ex);
 
                     if (info == null || info.isEmpty())
                         APIUtil.createNexus(null, username, password);
+
+                    callback.run();
                 });
                 NexusAPI.getNexusRepository(username, JavaContinuation.create(nexus));
 
                 return Unit.INSTANCE;
-            }, JavaContinuation.UNIT);
+            });
         }
     }
 
@@ -334,22 +355,21 @@ public class CmdCodeMC extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
 
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "username", "The target username to link.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "The discord user to link to the username.").setRequired(true)
+                    new OptionData(OptionType.STRING, "username", "The Jenkins user to validate to.").setRequired(true),
+                    new OptionData(OptionType.USER, "discord", "The discord user to link the database to.").setRequired(true)
             );
         }
 
         @Override
-        public void withModalReply(SlashCommandEvent event) {
-        }
+        public void withModalReply(SlashCommandEvent event) {}
 
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String username = event.getOption("username", null, OptionMapping::getAsString);
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
 
-            if (username == null || username.isEmpty()) {
-                CommandUtil.EmbedReply.from(hook).error("Invalid Jenkins User provided!").send();
+            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+                CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
             }
 
@@ -358,11 +378,109 @@ public class CmdCodeMC extends BotCommand{
                 return;
             }
 
-            User dbUser = DatabaseAPI.getUser(username);
-            if (dbUser == null)
+            Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
+            if (authorRole == null) {
+                CommandUtil.EmbedReply.from(hook).error("The Author role is not set up correctly!").send();
+                return;
+            }
+
+            boolean hasAuthor = target.getRoles().stream().anyMatch(role -> role.getIdLong() == authorRole.getIdLong());
+            if (!hasAuthor) {
+                CommandUtil.EmbedReply.from(hook).error("The user is not an Author!").send();
+                return;
+            }
+
+            if (DatabaseAPI.getUser(username) == null)
                 DatabaseAPI.addUser(username, target.getIdLong());
             else
                 DatabaseAPI.updateUser(username, target.getIdLong());
+
+            CommandUtil.EmbedReply.from(hook).success("Linked " + target.getUser().getAsTag() + " to " + username + "!").send();
+        }
+    }
+
+    private static class Unlink extends BotCommand {
+
+        public Unlink(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "unlink";
+            this.help = "Unlinks a discord user from their Jenkins/Nexus account.";
+
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "service");
+
+            this.options = List.of(
+                    new OptionData(OptionType.USER, "discord", "The discord user to unlink.").setRequired(true)
+            );
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {}
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            Member target = event.getOption("discord", null, OptionMapping::getAsMember);
+
+            if (target == null) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Discord User provided!").send();
+                return;
+            }
+
+            String username = DatabaseAPI.getAllUsers().stream()
+                    .filter(user -> user.getDiscord() == target.getIdLong())
+                    .map(User::getUsername)
+                    .findFirst()
+                    .orElse(null);
+
+            if (DatabaseAPI.getUser(username) == null) {
+                CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
+                return;
+            }
+
+            DatabaseAPI.removeUser(username);
+            CommandUtil.EmbedReply.from(hook).success("Unlinked " + target.getUser().getAsTag() + " from their Jenkins/Nexus account!").send();
+        }
+    }
+
+    private static class ChangePassword extends BotCommand {
+
+        public ChangePassword(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "changepassword";
+            this.help = "Regenerates your Nexus Credentials.";
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {}
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
+            if (authorRole == null) {
+                CommandUtil.EmbedReply.from(hook).error("The Author role is not set up correctly!").send();
+                return;
+            }
+
+            boolean hasAuthor = member.getRoles().stream().anyMatch(role -> role.getIdLong() == authorRole.getIdLong());
+            if (!hasAuthor) {
+                CommandUtil.EmbedReply.from(hook).error("Only Authors can regenerate their credentials.").send();
+                return;
+            }
+
+            String username = DatabaseAPI.getAllUsers().stream()
+                    .filter(user -> user.getDiscord() == member.getIdLong())
+                    .map(User::getUsername)
+                    .findFirst()
+                    .orElse(null);
+
+            if (username == null) {
+                CommandUtil.EmbedReply.from(hook).error("You are not linked to any Jenkins/Nexus account!").send();
+                return;
+            }
+
+            String password = APIUtil.newPassword();
+            APIUtil.changePassword(hook, username, password);
         }
     }
 }
