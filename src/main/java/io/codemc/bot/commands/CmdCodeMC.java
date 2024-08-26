@@ -105,7 +105,7 @@ public class CmdCodeMC extends BotCommand {
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String job = event.getOption("job", null, OptionMapping::getAsString);
-            if (job == null || job.isEmpty()) {
+            if (job == null || !job.contains("/")) {
                 CommandUtil.EmbedReply.from(hook).error("Invalid Jenkins Job provided!").send();
                 return;
             }
@@ -138,7 +138,7 @@ public class CmdCodeMC extends BotCommand {
             if (info.getLastStableBuild() != null)
                 embed.addField("Last Stable Build", info.getLastStableBuild().toString(), false);
 
-            hook.editOriginalEmbeds(embed.build).queue();
+            hook.editOriginalEmbeds(embed.build()).queue();
         }
     }
 
@@ -189,7 +189,6 @@ public class CmdCodeMC extends BotCommand {
 
                 MessageEmbed embed = CommandUtil.getEmbed()
                         .setTitle(user, nexusUrl + "/#browse/browse:" + repository)
-                        .setAuthor(user, nexusUrl + "/#browse/browse:" + repository)
                         .setDescription("Information about the Nexus Repository.")
                         .addField("Format", format, true)
                         .addField("Type", type, true)
@@ -247,7 +246,6 @@ public class CmdCodeMC extends BotCommand {
                 }
             });
             NexusAPI.deleteNexus(username, JavaContinuation.create(deleted));
-            DatabaseAPI.removeUser(username);
 
             Member user = event.getOption("discord", null, OptionMapping::getAsMember);
             if (user == null) return;
@@ -308,10 +306,10 @@ public class CmdCodeMC extends BotCommand {
             BuildersKt.withContext(Dispatchers.getIO(), (scope, continuation) -> {
                 String username = event.getOption("username", null, OptionMapping::getAsString);
                 if (username == null) {
-                    JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(scope, user, count::incrementAndGet));
+                    JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(scope, user, count));
                     CommandUtil.EmbedReply.from(hook).success("Validating all Jenkins Users...").send();
                 } else {
-                    validate(scope, username, count::incrementAndGet);
+                    validate(scope, username, count);
                 }
 
                 return Unit.INSTANCE;
@@ -320,7 +318,7 @@ public class CmdCodeMC extends BotCommand {
             CommandUtil.EmbedReply.from(hook).success("Successfully validated " + count.get() + " User(s)").send();
         }
 
-        private static void validate(CoroutineScope scope, String username, Runnable callback) {
+        private void validate(CoroutineScope scope, String username, AtomicInteger count) {
             BuildersKt.launch(scope, Dispatchers.getIO(), CoroutineStart.DEFAULT, (launch, continuation) -> {
                 String password = APIUtil.newPassword();
 
@@ -336,7 +334,7 @@ public class CmdCodeMC extends BotCommand {
                     if (info == null || info.isEmpty())
                         APIUtil.createNexus(null, username, password);
 
-                    callback.run();
+                    count.incrementAndGet();
                 });
                 NexusAPI.getNexusRepository(username, JavaContinuation.create(nexus));
 
@@ -450,7 +448,7 @@ public class CmdCodeMC extends BotCommand {
         public ChangePassword(CodeMCBot bot) {
             super(bot);
 
-            this.name = "changepassword";
+            this.name = "change-password";
             this.help = "Regenerates your Nexus Credentials.";
         }
 

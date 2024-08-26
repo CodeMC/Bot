@@ -24,13 +24,14 @@ public class APIUtil {
     public static void createNexus(InteractionHook hook, String username, String password) {
         CompletableFuture<Boolean> nexus = new CompletableFuture<>();
         nexus.whenCompleteAsync((success, ex) -> {
-            if(ex != null || (success != null && !success)){
+            if(success != null && !success){
                 if (hook != null)
                     CommandUtil.EmbedReply.from(hook)
                             .error("Failed to create Nexus Repository!")
                             .send();
-
-                LOGGER.error("Failed to create Nexus Repository for {}!", username, ex);
+                
+                if (ex != null)
+                    LOGGER.error("Failed to create Nexus Repository for {}!", username, ex);
             }
         });
         NexusAPI.createNexus(username, password, JavaContinuation.create(nexus));
@@ -39,12 +40,16 @@ public class APIUtil {
     public static void createJenkinsJob(InteractionHook hook, String username, String password, String project, String repoLink) {
         CompletableFuture<Boolean> isFreestyle = new CompletableFuture<>();
         isFreestyle.whenCompleteAsync((freestyle, ex) -> {
-            if (ex != null) {
+            if (freestyle == null) {
                 CommandUtil.EmbedReply.from(hook)
                         .error("Failed to determine if the project is freestyle!")
                         .send();
+                
+                if (ex != null)
+                    LOGGER.error("Failed to determine if the project is freestyle for {}!", username, ex);
+                else
+                    LOGGER.error("Failed to determine if the project is freestyle for {}! (No Errors)", username);
 
-                LOGGER.error("Failed to determine if the project is freestyle for {}!", username, ex);
                 return;
             }
 
@@ -83,24 +88,30 @@ public class APIUtil {
     public static void changePassword(InteractionHook hook, String username, String newPassword) {
         CompletableFuture<Boolean> changeNexusPassword = new CompletableFuture<>();
         changeNexusPassword.whenCompleteAsync((nexusSuccess, nexusEx) -> {
-            if (nexusEx != null || (nexusSuccess != null && !nexusSuccess)){
+            if (nexusSuccess == null || !nexusSuccess){
                 if (hook != null)
                     CommandUtil.EmbedReply.from(hook)
                             .error("Failed to change Nexus Repository password!")
                             .send();
 
-                LOGGER.error("Failed to change Nexus Repository password for {}!", username, nexusEx);
+                if (nexusEx != null)
+                    LOGGER.error("Failed to change Nexus Repository password for {}!", username, nexusEx);
+                else
+                    LOGGER.error("Failed to change Nexus Repository password for {}! (No Errors)", username);
             }
 
             CompletableFuture<Boolean> changeJenkinsPassword = new CompletableFuture<>();
             changeJenkinsPassword.whenCompleteAsync((jenkinsSuccess, jenkinsEx) -> {
-                if (jenkinsEx != null || (jenkinsSuccess != null && !jenkinsSuccess)){
+                if (jenkinsSuccess == null || !jenkinsSuccess){
                     if (hook != null)
                         CommandUtil.EmbedReply.from(hook)
                                 .error("Failed to change Jenkins password!")
                                 .send();
 
-                    LOGGER.error("Failed to change Jenkins password for {}!", username, jenkinsEx);
+                    if (jenkinsEx != null)
+                        LOGGER.error("Failed to change Jenkins password for {}!", username, jenkinsEx);
+                    else
+                        LOGGER.error("Failed to change Jenkins password for {}! (No Errors)", username);
                 }
 
                 if (hook != null)
@@ -108,6 +119,7 @@ public class APIUtil {
                             .success("Successfully changed your password!")
                             .send();
             });
+            JenkinsAPI.changeJenkinsPassword(username, newPassword, JavaContinuation.create(changeJenkinsPassword));
         });
         NexusAPI.changeNexusPassword(username, newPassword, JavaContinuation.create(changeNexusPassword));
     }

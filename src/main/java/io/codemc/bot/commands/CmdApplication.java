@@ -21,9 +21,7 @@ package io.codemc.bot.commands;
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.api.database.DatabaseAPI;
-import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.JavaContinuation;
 import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -45,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

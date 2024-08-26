@@ -19,7 +19,6 @@
 package io.codemc.bot.listeners;
 
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
