@@ -94,7 +94,8 @@ public class CmdCodeMC extends BotCommand {
             this.help = "Fetch information about the Jenkins Service.";
 
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "job", "The Jenkins Job Location to fetch. For example, \"CodeMC/API\" gets the API job from the CodeMC User.").setRequired(true)
+                    new OptionData(OptionType.STRING, "job", "The Jenkins Job Location to fetch. I.e. \"CodeMC/API\".").setRequired(true)
+
             );
         }
 
@@ -213,7 +214,8 @@ public class CmdCodeMC extends BotCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "The discord user that is having their status revoked. Leave blank if the user is no longer in the server.")
+                    new OptionData(OptionType.USER, "discord", "ID of Discord user having their status revoked. Leave blank for users no longer in the server.")
+
             );
         }
 
@@ -292,7 +294,7 @@ public class CmdCodeMC extends BotCommand {
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "username", "The target username to validate. If left blank, validates all existing Jenkins users.")
+                    new OptionData(OptionType.STRING, "username", "Target Username to validate. When left blank, validates all existing Jenkins Users.")
             );
         }
 
