@@ -18,6 +18,7 @@
 
 package io.codemc.bot.listeners;
 
+import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
@@ -26,6 +27,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -64,6 +66,14 @@ public class ModalListener extends ListenerAdapter{
         switch(args[0]){
             case "submit" -> event.deferReply(true).queue(hook -> {
                 String user = value(event, "user");
+
+                if (!JenkinsAPI.getJenkinsUser(user).isEmpty()) {
+                    CommandUtil.EmbedReply.from(hook)
+                            .error("A Jenkins User named '" + user + "' already exists!")
+                            .send();
+                    return;
+                }
+
                 String repo = value(event, "repo");
                 String description = value(event, "description");
                 
