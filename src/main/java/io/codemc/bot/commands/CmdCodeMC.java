@@ -26,14 +26,8 @@ import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.jenkins.JenkinsJob;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.JavaContinuation;
 import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
-import kotlin.Unit;
-import kotlinx.coroutines.BuildersKt;
-import kotlinx.coroutines.CoroutineScope;
-import kotlinx.coroutines.CoroutineStart;
-import kotlinx.coroutines.Dispatchers;
 import kotlinx.serialization.json.JsonObject;
 import kotlinx.serialization.json.JsonPrimitive;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -52,13 +46,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CmdCodeMC extends BotCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
-
 
     public CmdCodeMC(CodeMCBot bot) {
         super(bot);
@@ -172,33 +164,24 @@ public class CmdCodeMC extends BotCommand {
             String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
             String repository = user.toLowerCase();
 
-            CompletableFuture<JsonObject> nexus = new CompletableFuture<>();
-            nexus.whenCompleteAsync((info, ex) -> {
-                if (ex != null) {
-                    CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
-                    LOGGER.error("Failed to fetch Nexus Repository Info for '{}'!", user, ex);
-                    return;
-                }
+            JsonObject info = NexusAPI.getNexusRepository(repository);
+            if (info == null) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
+                return;
+            }
 
-                if (info == null) {
-                    CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
-                    return;
-                }
+            String format = ((JsonPrimitive) info.get("format")).getContent();
+            String type = ((JsonPrimitive) info.get("type")).getContent();
 
-                String format = ((JsonPrimitive) info.get("format")).getContent();
-                String type = ((JsonPrimitive) info.get("type")).getContent();
+            MessageEmbed embed = CommandUtil.getEmbed()
+                    .setTitle(user, nexusUrl + "/#browse/browse:" + repository)
+                    .setDescription("Information about the Nexus Repository.")
+                    .addField("Format", format, true)
+                    .addField("Type", type, true)
+                    .setTimestamp(Instant.now())
+                    .build();
 
-                MessageEmbed embed = CommandUtil.getEmbed()
-                        .setTitle(user, nexusUrl + "/#browse/browse:" + repository)
-                        .setDescription("Information about the Nexus Repository.")
-                        .addField("Format", format, true)
-                        .addField("Type", type, true)
-                        .setTimestamp(Instant.now())
-                        .build();
-
-                hook.sendMessageEmbeds(embed).queue();
-            });
-            NexusAPI.getNexusRepository(repository, JavaContinuation.create(nexus));
+            hook.sendMessageEmbeds(embed).queue();
         }
     }
 
@@ -214,8 +197,7 @@ public class CmdCodeMC extends BotCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "ID of Discord user having their status revoked. Leave blank for users no longer in the server.")
-
+                    new OptionData(OptionType.USER, "discord", "Discord user having their status revoked. Leave blank for users no longer in the server.")
             );
         }
 
@@ -239,18 +221,16 @@ public class CmdCodeMC extends BotCommand {
 
             DatabaseAPI.removeUser(username);
             JenkinsAPI.deleteUser(username);
-
-            CompletableFuture<Boolean> deleted = new CompletableFuture<>();
-            deleted.whenCompleteAsync((success, ex) -> {
-                if (ex != null || (success != null && !success)) {
-                    CommandUtil.EmbedReply.from(hook).error("Failed to delete Nexus User!").send();
-                    LOGGER.error("Failed to delete Nexus User '{}'!", username, ex);
-                }
-            });
-            NexusAPI.deleteNexus(username, JavaContinuation.create(deleted));
+            NexusAPI.deleteNexus(username);
 
             Member user = event.getOption("discord", null, OptionMapping::getAsMember);
-            if (user == null) return;
+            if (user == null) {
+                CommandUtil.EmbedReply.from(hook)
+                        .success("Revoked Author Status from " + username + "!")
+                        .send();
+
+                return;
+            }
 
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
             if (authorRole == null) {
@@ -305,43 +285,39 @@ public class CmdCodeMC extends BotCommand {
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             AtomicInteger count = new AtomicInteger(0);
 
-            BuildersKt.withContext(Dispatchers.getIO(), (scope, continuation) -> {
-                String username = event.getOption("username", null, OptionMapping::getAsString);
-                if (username == null) {
-                    JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(scope, user, count));
-                    CommandUtil.EmbedReply.from(hook).success("Validating all Jenkins Users...").send();
-                } else {
-                    validate(scope, username, count);
-                }
+            String username = event.getOption("username", null, OptionMapping::getAsString);
+            if (username == null) {
+                CommandUtil.EmbedReply.from(hook)
+                        .success("Validating all Jenkins Users...")
+                        .send();
 
-                return Unit.INSTANCE;
-            }, JavaContinuation.UNIT);
+                JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(user, count));
+            } else {
+                validate(username, count);
+            }
 
-            CommandUtil.EmbedReply.from(hook).success("Successfully validated " + count.get() + " User(s)").send();
+            CommandUtil.EmbedReply.from(hook)
+                    .success("Successfully validated " + count.get() + " User(s)")
+                    .send();
         }
 
-        private void validate(CoroutineScope scope, String username, AtomicInteger count) {
-            BuildersKt.launch(scope, Dispatchers.getIO(), CoroutineStart.DEFAULT, (launch, continuation) -> {
-                String password = APIUtil.newPassword();
+        private void validate(String username, AtomicInteger count) {
+            String password = APIUtil.newPassword();
+            String jenkins = JenkinsAPI.getJenkinsUser(username);
 
-                String jenkins = JenkinsAPI.getJenkinsUser(username);
-                if (jenkins == null || jenkins.isEmpty())
-                    JenkinsAPI.createJenkinsUser(username, password);
+            boolean noJenkins = jenkins == null || jenkins.isEmpty();
+            if (noJenkins)
+                JenkinsAPI.createJenkinsUser(username, password);
 
-                CompletableFuture<JsonObject> nexus = new CompletableFuture<>();
-                nexus.whenCompleteAsync((info, ex) -> {
-                    if (ex != null)
-                        LOGGER.error("Failed to validate Nexus Repository for {}!", username, ex);
+            JsonObject info = NexusAPI.getNexusRepository(username);
+            if (info == null || info.isEmpty()) {
+                if (!noJenkins)
+                    JenkinsAPI.changeJenkinsPassword(username, password);
 
-                    if (info == null || info.isEmpty())
-                        APIUtil.createNexus(null, username, password);
+                APIUtil.createNexus(null, username, password);
+            }
 
-                    count.incrementAndGet();
-                });
-                NexusAPI.getNexusRepository(username, JavaContinuation.create(nexus));
-
-                return Unit.INSTANCE;
-            });
+            count.incrementAndGet();
         }
     }
 
@@ -483,7 +459,18 @@ public class CmdCodeMC extends BotCommand {
             }
 
             String password = APIUtil.newPassword();
-            APIUtil.changePassword(hook, username, password);
+            boolean success = APIUtil.changePassword(hook, username, password);
+            if (!success) {
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to regenerate Nexus Credentials!")
+                        .send();
+
+                LOGGER.error("Failed to regenerate Nexus Credentials for {}!", username);
+            }
+
+            CommandUtil.EmbedReply.from(hook)
+                    .success("Successfully changed your password!")
+                    .send();
         }
     }
 }
