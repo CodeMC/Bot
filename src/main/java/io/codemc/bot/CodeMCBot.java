@@ -21,7 +21,9 @@ package io.codemc.bot;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
 import io.codemc.api.CodeMCAPI;
 import io.codemc.api.database.DBConfig;
+import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.jenkins.JenkinsConfig;
+import io.codemc.api.nexus.NexusAPI;
 import io.codemc.api.nexus.NexusConfig;
 import io.codemc.bot.commands.*;
 import io.codemc.bot.config.ConfigHandler;
@@ -99,7 +101,7 @@ public class CodeMCBot{
         JenkinsConfig jenkins = new JenkinsConfig(
                 configHandler.getString("jenkins", "url"),
                 configHandler.getString("jenkins", "username"),
-                configHandler.getString("jenkins", "password")
+                configHandler.getString("jenkins", "token")
         );
         NexusConfig nexus = new NexusConfig(
                 configHandler.getString("nexus", "url"),
@@ -115,7 +117,25 @@ public class CodeMCBot{
                 configHandler.getString("database", "username"),
                 configHandler.getString("database", "password")
         );
-        CodeMCAPI.initialize(jenkins, nexus, db, JavaContinuation.UNIT);
+
+        CodeMCAPI.initialize(jenkins, nexus, db);
+        logger.info("Connected to the database at {}:{}", dbHost, dbPort);
+
+        boolean jenkinsPing = JenkinsAPI.ping();
+        if (!jenkinsPing) {
+            logger.error("Failed to connect to Jenkins at {}!", jenkins.getUrl());
+            System.exit(1);
+            return;
+        }
+        logger.info("Connected to Jenkins at {}", jenkins.getUrl());
+
+        boolean nexusPing = NexusAPI.ping();
+        if (!nexusPing) {
+            logger.error("Failed to connect to Nexus at {}!", nexus.getUrl());
+            System.exit(1);
+            return;
+        }
+        logger.info("Connected to Nexus at {}", nexus.getUrl());
         
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(
