@@ -145,9 +145,14 @@ hs_err_pid*
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/discord.xml
 /.idea/intellij-javadocs-*.xml
+/.idea/dataSources.xml
 
 # Gradle
 .gradle/
+build/
 
 # VSCode
 .vscode/
+
+# Copied configuration
+config.json
