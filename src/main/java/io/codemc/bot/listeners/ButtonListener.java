@@ -99,7 +99,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), null, false)
+                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "Reason not Provided", false)
             );
         }
     }
@@ -108,6 +108,6 @@ public class ButtonListener extends ListenerAdapter{
         if(roleIds.isEmpty())
             return true;
         
-        return roleIds.stream().anyMatch(allowedRoleIds::contains);
+        return roleIds.stream().noneMatch(allowedRoleIds::contains);
     }
 }
