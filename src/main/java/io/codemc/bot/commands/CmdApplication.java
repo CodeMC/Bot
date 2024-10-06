@@ -73,7 +73,7 @@ public class CmdApplication extends BotCommand{
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
     public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
-        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channel", "request_access"));
+        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
         if(requestChannel == null){
             CommandUtil.EmbedReply.from(hook).error("Unable to retrieve `request-access` channel.").send();
             return;
@@ -108,7 +108,10 @@ public class CmdApplication extends BotCommand{
                     userLink = field.getValue();
                 }else
                 if(field.getName().equalsIgnoreCase("repository:")){
-                    repoLink = field.getValue();
+                    String link = field.getValue();
+                    String url = link.substring(link.indexOf("(") + 1, link.indexOf(")"));
+
+                    repoLink = url.isEmpty() ? link : url;
                 }
             }
             
@@ -140,6 +143,16 @@ public class CmdApplication extends BotCommand{
             String project = matcher.group(2);
             String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/" + project + "/";
             Member member = guild.getMemberById(userId);
+
+            if (accepted) {
+                String password = APIUtil.newPassword();
+                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
+                boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
+                if (!nexusSuccess || !jenkinsSuccess) return;
+
+                if (DatabaseAPI.getUser(username) == null)
+                    DatabaseAPI.addUser(username, member.getIdLong());
+            }
 
             channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
@@ -188,11 +201,6 @@ public class CmdApplication extends BotCommand{
                             )
                     );
             });
-
-            String password = APIUtil.newPassword();
-            APIUtil.createNexus(hook, username, password);
-            APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
-            DatabaseAPI.addUser(username, member.getIdLong());
         });
     }
     
