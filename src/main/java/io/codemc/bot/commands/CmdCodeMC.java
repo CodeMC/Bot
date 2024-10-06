@@ -196,8 +196,7 @@ public class CmdCodeMC extends BotCommand {
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "Discord user having their status revoked. Leave blank for users no longer in the server.")
+                    new OptionData(OptionType.STRING, "username", "The Jenkins/Nexus username of the user.").setRequired(true)
             );
         }
 
@@ -219,18 +218,12 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
+            long id = DatabaseAPI.getUser(username).getDiscord();
+            Member user = guild.getMemberById(id);
+
             DatabaseAPI.removeUser(username);
             JenkinsAPI.deleteUser(username);
             NexusAPI.deleteNexus(username);
-
-            Member user = event.getOption("discord", null, OptionMapping::getAsMember);
-            if (user == null) {
-                CommandUtil.EmbedReply.from(hook)
-                        .success("Revoked Author Status from " + username + "!")
-                        .send();
-
-                return;
-            }
 
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
             if (authorRole == null) {
