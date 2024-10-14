@@ -218,12 +218,19 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            long id = DatabaseAPI.getUser(username).getDiscord();
-            Member user = guild.getMemberById(id);
+            User dbUser = DatabaseAPI.getUser(username);
 
             DatabaseAPI.removeUser(username);
             JenkinsAPI.deleteUser(username);
             NexusAPI.deleteNexus(username);
+
+            if (dbUser == null) {
+                CommandUtil.EmbedReply.from(hook).success("Successfully removed " + username + " from the CodeMC Services!").send();
+                return;
+            }
+
+            long id = dbUser.getDiscord();
+            Member user = guild.getMemberById(id);
 
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
             if (authorRole == null) {
