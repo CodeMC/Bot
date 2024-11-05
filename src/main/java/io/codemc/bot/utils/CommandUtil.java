@@ -21,9 +21,13 @@ package io.codemc.bot.utils;
 import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class CommandUtil{
     
@@ -35,80 +39,65 @@ public class CommandUtil{
         return new EmbedBuilder().setColor(0x0172BA);
     }
     
-    public static class EmbedReply {
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public static boolean hasRole(Member member, List<Long> roleIds){
+        if(roleIds.isEmpty())
+            return true;
         
-        private final SlashCommandEvent commandEvent;
-        private final ModalInteractionEvent modalEvent;
-        private final InteractionHook hook;
+        return member.getRoles().stream()
+            .filter(role -> roleIds.contains(role.getIdLong()))
+            .findFirst()
+            .orElse(null) != null;
+    }
+    
+    public static class EmbedReply<T> {
+        
+        private final T type;
         private final EmbedBuilder builder = new EmbedBuilder();
         
-        private EmbedReply(SlashCommandEvent commandEvent){
-            this.commandEvent = commandEvent;
-            this.modalEvent = null;
-            this.hook = null;
+        private EmbedReply(T type){
+            this.type = type;
         }
         
-        private EmbedReply(InteractionHook hook){
-            this.commandEvent = null;
-            this.modalEvent = null;
-            this.hook = hook;
+        public static <T> EmbedReply<T> from(T type){
+            return new EmbedReply<>(type);
         }
         
-        private EmbedReply(ModalInteractionEvent modalEvent){
-            this.commandEvent = null;
-            this.modalEvent = modalEvent;
-            this.hook = null;
-        }
-        
-        public static EmbedReply fromCommandEvent(SlashCommandEvent event){
-            return new EmbedReply(event);
-        }
-        
-        public static EmbedReply fromModalEvent(ModalInteractionEvent event){
-            return new EmbedReply(event);
-        }
-        
-        public static EmbedReply fromHook(InteractionHook hook){
-            return new EmbedReply(hook);
-        }
-        
-        public EmbedReply withMessage(String... lines){
-            builder.setDescription(String.join("\n", lines));
+        public EmbedReply<T> success(String... lines){
+            builder.setDescription(String.join("\n", lines))
+                .setColor(0x00FF00);
             return this;
         }
         
-        public EmbedReply asSuccess(){
-            builder.setColor(0x00FF00);
+        public EmbedReply<T> appendWarning(String... lines){
+            builder.addField("Warning:", String.join("\n", lines), false)
+                .setColor(0xFFC800);
             return this;
         }
         
-        public EmbedReply withError(String... lines){
-            builder.setColor(0xFF0000)
-                .setDescription(
-                    "There was an error while trying to handle the command!\n" +
-                    "If this error persists, report it to Andre_601#0601"
-                )
-                .addField("Error:", String.join("\n", lines), false);
-            return this;
-        }
-        
-        public EmbedReply withIssue(String... lines){
-            builder.setColor(0xFFC800)
-                .addField("Warning:", String.join("\n", lines), false);
+        public EmbedReply<T> error(String... lines){
+            builder.setDescription(
+                "There was an error while trying to handle an action!\n" +
+                "If this error persists, report it to the Bot owner!")
+                .addField("Error:", String.join("\n", lines), false)
+                .setColor(0xFF0000);
             return this;
         }
         
         public void send(){
-            if(commandEvent != null){
-                commandEvent.replyEmbeds(builder.build()).queue();
+            if(type instanceof SlashCommandEvent commandEvent){
+                commandEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
-            if(modalEvent != null){
-                modalEvent.replyEmbeds(builder.build()).queue();
+            if(type instanceof ModalInteractionEvent modalEvent){
+                modalEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
-            if(hook != null){
-                hook.editOriginalEmbeds(builder.build()).queue();
+            if(type instanceof ButtonInteractionEvent buttonEvent){
+                buttonEvent.replyEmbeds(builder.build()).queue();
+            }else
+            if(type instanceof InteractionHook hook){
+                hook.editOriginal(EmbedBuilder.ZERO_WIDTH_SPACE).setEmbeds(builder.build()).queue();
             }else{
-                LOG.error("Received EmbedReply class with neither SlashCommandEvent, ModalInteractionEvent nor InteractionHook set!");
+                LOG.error("Received unknown Type {} for EmbedReply!", type);
             }
         }
     }

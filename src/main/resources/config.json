@@ -1,0 +1,30 @@
+{
+  "bot_token": "TOKEN",
+  "server": 0,
+  "channels": {
+    "request_access": 0,
+    "accepted_requests": 0,
+    "rejected_requests": 0
+  },
+  "author_role": 0,
+  "allowed_roles": {
+    "applications": {
+      "accept": [],
+      "deny": []
+    },
+    "commands": {
+      "application": [],
+      "disable": [],
+      "msg": [],
+      "reload": []
+    }
+  },
+  "users": {
+    "owner": 0,
+    "co_owners": []
+  },
+  "messages": {
+    "accepted": [],
+    "denied": []
+  }
+}

@@ -17,14 +17,13 @@
  */
 
 plugins {
-    id 'java'
-    id 'application'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
-    id 'idea'
+    id "java"
+    id "application"
+    id "com.github.johnrengelman.shadow" version "8.1.1"
 }
 
 group 'io.codemc'
-version '2.0.0'
+version '2.1.0'
 
 compileJava.options.encoding('UTF-8')
 
@@ -32,16 +31,17 @@ repositories {
     mavenCentral()
     maven { url = 'https://jitpack.io' }
     maven { url = 'https://repo.codemc.io/repository/maven-public' }
-    maven { url = 'https://m2.chew.pro/snapshots' }
+    maven { url = 'https://m2.chew.pro/releases' }
 }
 
 dependencies {
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.14'
-    implementation(group: 'net.dv8tion', name: 'JDA', version:'5.0.0-beta.23'){
+    implementation(group: 'net.dv8tion', name: 'JDA', version:'5.0.0'){
         exclude(module: 'opus-java')
     }
-    implementation group: 'pw.chew', name: 'jda-chewtils-commons', version: '2.0-SNAPSHOT'
-    implementation group: 'pw.chew', name: 'jda-chewtils-command', version: '2.0-SNAPSHOT'
+    implementation group: 'pw.chew', name: 'jda-chewtils-commons', version: '2.0'
+    implementation group: 'pw.chew', name: 'jda-chewtils-command', version: '2.0'
+    implementation group: 'org.spongepowered', name: 'configurate-gson', version: '4.1.2'
 }
 
 artifacts {

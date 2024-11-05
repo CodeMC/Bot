@@ -18,40 +18,54 @@
 
 package io.codemc.bot.commands;
 
-import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.bot.CodeMCBot;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
-public class CmdSubmit extends SlashCommand{
+public class CmdSubmit extends BotCommand{
     
-    public CmdSubmit(){
+    public CmdSubmit(CodeMCBot bot){
+        super(bot);
+        
         this.name = "submit";
         this.help = "Submit a request to join the CodeMC CI with a project.";
+        
+        this.hasModalReply = true;
     }
     
     @Override
-    protected void execute(SlashCommandEvent event){
-        TextInput userLink = TextInput.create("userlink", "User Link", TextInputStyle.SHORT)
-            .setPlaceholder("https://github.com/CodeMC")
+    public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
+    
+    @Override
+    public void withModalReply(SlashCommandEvent event){
+        TextInput user = TextInput.create("user", "GitHub Username", TextInputStyle.SHORT)
+            .setPlaceholder("CodeMC")
             .setRequired(true)
             .build();
-        TextInput repoLink = TextInput.create("repolink", "Repository Link", TextInputStyle.SHORT)
-            .setPlaceholder("https://github.com/CodeMC/Bot")
+        TextInput repo = TextInput.create("repo", "Repository Name", TextInputStyle.SHORT)
+            .setPlaceholder("Bot")
             .setRequired(true)
+            .build();
+        TextInput repoLink = TextInput.create("repoLink", "Repository Link (Leave blank if on GitHub)", TextInputStyle.SHORT)
+            .setPlaceholder("https://git.example.com/CodeMC/Bot")
             .build();
         TextInput description = TextInput.create("description", "Description", TextInputStyle.PARAGRAPH)
-            .setPlaceholder("Duscird Vit fir tge CideNC Sercver.")
+            .setPlaceholder("Discord Bot for the CodeMC Server.")
             .setRequired(true)
             .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
             .build();
         
         Modal modal = Modal.create("submit", "Join Request")
             .addComponents(
-                ActionRow.of(userLink),
+                ActionRow.of(user),
+                ActionRow.of(repo),
                 ActionRow.of(repoLink),
                 ActionRow.of(description)
             )

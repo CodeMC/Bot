@@ -18,8 +18,9 @@
 
 package io.codemc.bot.listeners;
 
+import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
-import io.codemc.bot.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -28,22 +29,25 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ModalListener extends ListenerAdapter{
     
-    private final Pattern userLinkPattern = Pattern.compile("^https://github\\.com/(?<user>[a-zA-Z0-9-]+)/?$");
-    private final Pattern repoLinkPattern = Pattern.compile("^https://github\\.com/(?<user>[a-zA-Z0-9-]+)/(?<repo>[a-zA-Z0-9-_.]+)/?$");
-    
     private final Logger logger = LoggerFactory.getLogger(ModalListener.class);
+    
+    private final CodeMCBot bot;
+    
+    public ModalListener(CodeMCBot bot){
+        this.bot = bot;
+    }
     
     @Override
     public void onModalInteraction(@NotNull ModalInteractionEvent event){
@@ -51,109 +55,97 @@ public class ModalListener extends ListenerAdapter{
             return;
         
         Guild guild = event.getGuild();
-        if(guild == null || !guild.getId().equals(Constants.SERVER)){
-            CommandUtil.EmbedReply.fromModalEvent(event)
-                .withError("Unable to retrieve CodeMC Server!")
-                .send();
+        if(guild == null || guild.getIdLong() != bot.getConfigHandler().getLong("server")){
+            CommandUtil.EmbedReply.from(event).error("Unable to retrieve CodeMC Server!").send();
             return;
         }
         
-        if(event.getModalId().equals("submit")){
-            event.deferReply(true).queue(hook -> {
-                
-                String userLink = value(event, "userlink");
-                String repoLink = value(event, "repolink");
+        String[] args = event.getModalId().split(":");
+        
+        switch(args[0]){
+            case "submit" -> event.deferReply(true).queue(hook -> {
+                String user = value(event, "user");
+                String repo = value(event, "repo");
                 String description = value(event, "description");
                 
-                if(nullOrEmpty(userLink, repoLink, description)){
-                    CommandUtil.EmbedReply.fromHook(hook).withError(
-                        "User Link, Repository Link or Description was not present!"
-                    ).send();
+                if(user == null || user.isEmpty() || repo == null || repo.isEmpty() || description == null || description.isEmpty()){
+                    CommandUtil.EmbedReply.from(hook).error(
+                        "The option User, Repo and/or Description was not set properly!")
+                        .send();
                     return;
                 }
                 
-                Matcher userMatcher = userLinkPattern.matcher(userLink);
-                Matcher repoMatcher = repoLinkPattern.matcher(repoLink);
-                
-                if(!userMatcher.matches() || !repoMatcher.matches()){
-                    CommandUtil.EmbedReply.fromHook(hook).withError(
-                        "The provided User or Repository link does not match a valid GitHub URL.",
-                        "Make sure the patterns are `https://github.com/<user>` and `https://github.com/<user>/<repository>` respectively."
-                    ).send();
+                TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
+                if(requestChannel == null){
+                    CommandUtil.EmbedReply.from(hook).error("Unable to retrieve `request-access` channel!").send();                     
                     return;
                 }
                 
-                String username = String.format("[`%s`](%s)", userMatcher.group("user"), userLink);
-                String repo = String.format("[`%s/%s`](%s)", repoMatcher.group("user"), repoMatcher.group("repo"), repoLink);
+                String repoLinkValue = value(event, "repoLink");
+                if(repoLinkValue == null || repoLinkValue.isEmpty())
+                    repoLinkValue = "https://github.com/" + user + "/" + repo;
+                
+                String userLink = MarkdownUtil.maskedLink(user, "https://github.com/" + user);
+                String repoLink = MarkdownUtil.maskedLink(repo, repoLinkValue);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                TextChannel requestChannel = guild.getTextChannelById(Constants.REQUEST_ACCESS);
-                if(requestChannel == null){
-                    CommandUtil.EmbedReply.fromHook(hook).withError(
-                        "Unable to retrieve `request-access` channel!"
-                    ).send();
-                    return;
-                }
-                
                 MessageEmbed embed = CommandUtil.getEmbed()
-                    .addField("User/Organisation:", username, true)
-                    .addField("Repository:", repo, true)
+                    .addField("User/Organisation:", userLink, true)
+                    .addField("Repository:", repoLink, true)
                     .addField("Submitted by:", submitter, true)
                     .addField("Description", description, false)
                     .setFooter(event.getUser().getId())
                     .setTimestamp(Instant.now())
                     .build();
                 
-                requestChannel.sendMessageEmbeds(embed).queue(
-                    message -> {
-                        CommandUtil.EmbedReply.fromHook(hook).withMessage(
-                            "[Request sent!](" + message.getJumpUrl() + ")"
-                        ).asSuccess().send();
-                        
-                        RestAction.allOf(
-                            message.createThreadChannel("Access Request - " + event.getUser().getName()),
-                            message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)),
-                            message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false))
-                        ).queue();
-                        
-                        logger.info("[Access Request] User {} requested access to the CI.", event.getUser().getEffectiveName());
-                    },
-                    e -> CommandUtil.EmbedReply.fromHook(hook).withError(
-                        "Error while submitting request!",
-                        "Reported Error: " + e.getMessage()
-                    ).send()
+                requestChannel.sendMessageEmbeds(embed)
+                    .setActionRow(
+                        Button.success("application:accept:" + user + ":" + repo, "Accept"),
+                        Button.danger("application:deny:" + user + ":" + repo, "Deny")
+                    ).queue(
+                        message -> {
+                            CommandUtil.EmbedReply.from(hook).success(
+                                "[Request sent!](" + message.getJumpUrl() + ")")
+                                .send();
+                            
+                            RestAction.allOf(
+                                message.createThreadChannel("Access Request - " + event.getUser().getName()),
+                                message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)),
+                                message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false))
+                            ).queue();
+                            
+                            logger.info("[Access Request] User {} requested access to the CI.", event.getUser().getEffectiveName());
+                        },
+                        e -> CommandUtil.EmbedReply.from(hook).error(
+                            "Error while submitting request!",
+                            "Reported Error: " + e.getMessage()
+                        ).send()
                 );
             });
-        }else
-        if(event.getModalId().startsWith("message:")){
-            event.deferReply(true).queue(hook -> {
-                String[] args = event.getModalId().split(":");
+            
+            case "message" -> event.deferReply(true).queue(hook -> {
                 if(args.length < 4){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Invalid Modal data. Expected `>=4` but received `" + args.length + "`!")
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Invalid Modal data. Expected `4+` arguments but received `" + args.length + "`!")
                         .send();
                     return;
                 }
                 
                 TextChannel channel = guild.getTextChannelById(args[2]);
                 if(channel == null){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Received invalid Text Channel.")
-                        .send();
+                    CommandUtil.EmbedReply.from(hook).error("Received invalid Text Channel.").send();
                     return;
                 }
                 
                 String text = value(event, "message");
                 if(text == null || text.isEmpty()){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Received invalid Message to sent/edit.")
-                        .send();
+                    CommandUtil.EmbedReply.from(hook).error("Received invalid Message to sent/edit.").send();
                     return;
                 }
                 
                 if(!channel.canTalk()){
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("I lack the permission to see and/or write in " + channel.getAsMention() + ".")
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("I lack the permission to see and/or write in " + channel.getAsMention() + ".")
                         .send();
                     return;
                 }
@@ -164,23 +156,22 @@ public class ModalListener extends ListenerAdapter{
                     if(asEmbed){
                         channel.sendMessageEmbeds(CommandUtil.getEmbed().setDescription(text).build()).queue(
                             message -> sendConfirmation(hook, message, false),
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withError("Unable to sent message. Reason: " + e.getMessage())
+                            e -> CommandUtil.EmbedReply.from(hook)
+                                .error("Unable to sent message. Reason: " + e.getMessage())
                                 .send()
                         );
                     }else{
                         channel.sendMessage(text).queue(
                             message -> sendConfirmation(hook, message, false),
-                            e -> CommandUtil.EmbedReply.fromHook(hook)
-                                .withError("Unable to sent message. Reason: " + e.getMessage())
+                            e -> CommandUtil.EmbedReply.from(hook)
+                                .error("Unable to sent message. Reason: " + e.getMessage())
                                 .send()
                         );
                     }
-                }else
-                if(args[1].equals("edit")){
+                }else if(args[1].equals("edit")){
                     if(args.length == 4){
-                        CommandUtil.EmbedReply.fromHook(hook)
-                            .withError("Received invalid Modal data. Expected `>4` but got `=4`")
+                        CommandUtil.EmbedReply.from(hook)
+                            .error("Received invalid Modal data. Expected `>4` but got `=4`")
                             .send();
                         return;
                     }
@@ -193,8 +184,8 @@ public class ModalListener extends ListenerAdapter{
                     }
                     
                     if(messageId == -1L){
-                        CommandUtil.EmbedReply.fromHook(hook)
-                            .withError("Received invalid message ID `" + args[4] + "`.")
+                        CommandUtil.EmbedReply.from(hook)
+                            .error("Received invalid message ID `" + args[4] + "`.")
                             .send();
                         return;
                     }
@@ -204,49 +195,81 @@ public class ModalListener extends ListenerAdapter{
                             if(asEmbed){
                                 message.editMessageEmbeds(CommandUtil.getEmbed().setDescription(text).build()).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.fromHook(hook)
-                                        .withError("Unable to edit message. Reason: " + e.getMessage())
+                                    e -> CommandUtil.EmbedReply.from(hook)
+                                        .error("Unable to edit message. Reason: " + e.getMessage())
                                         .send()
                                 );
                             }else{
                                 message.editMessage(text).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.fromHook(hook)
-                                        .withError("Unable to edit message. Reason: " + e.getMessage())
+                                    e -> CommandUtil.EmbedReply.from(hook)
+                                        .error("Unable to edit message. Reason: " + e.getMessage())
                                         .send()
                                 );
                             }
                         }
                     );
                 }else{
-                    CommandUtil.EmbedReply.fromHook(hook)
-                        .withError("Received Unknown Message type: `" + args[1] + "`.")
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Received Unknown Message type: `" + args[1] + "`.")
                         .send();
                 }
             });
-        }else{
-            CommandUtil.EmbedReply.fromModalEvent(event)
-                .withError("Received unknwon Modal Data: `"+ event.getModalId() +"`")
+                
+            case "application" -> event.deferReply(true).queue(hook -> {
+                if(args.length < 3){
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Invalid Modal data. Expected `3` args but received `" + args.length + "`!")
+                        .send();
+                    return;
+                }
+                
+                if(!args[1].equals("accepted") && !args[1].equals("denied")){
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Received unknown Application type. Expected `accepted` or `denied` but received `" + args[1] + "`.")
+                        .send();
+                    return;
+                }
+                
+                long messageId;
+                try{
+                    messageId = Long.parseLong(args[2]);
+                }catch(NumberFormatException ex){
+                    messageId = -1L;
+                }
+                
+                if(messageId == -1L){
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Received Invalid Message ID. Expected number but got `" + args[2] + "` instead!")
+                        .send();
+                    return;
+                }
+                
+                boolean accepted = args[1].equals("accepted");
+                
+                String text = value(event, "text");
+                if(text == null || text.isEmpty()){
+                    CommandUtil.EmbedReply.from(hook)
+                        .error("Received invalid " + (accepted ? "Project URL" : "Reason") + ". Text was empty/null.")
+                        .send();
+                    return;
+                }
+                
+                CmdApplication.handle(bot, hook, guild, messageId, text, accepted);
+            });
+            
+            default -> CommandUtil.EmbedReply.from(event)
+                .error("Received Modal with unknown ID `" + event.getModalId() + "`.")
                 .send();
         }
     }
     
     private void sendConfirmation(InteractionHook hook, Message message, boolean edit){
-        CommandUtil.EmbedReply.fromHook(hook)
-            .withMessage(String.format("[%s](%s)", edit ? "Message edited!" : "Message sent!", message.getJumpUrl()))
-            .asSuccess()
+        CommandUtil.EmbedReply.from(hook)
+            .success(String.format("[%s](%s)", edit ? "Message edited!" : "Message sent!", message.getJumpUrl()))
             .send();
         
         logger.info("[Message] User {} {} a Message as the Bot.", hook.getInteraction().getUser().getEffectiveName(), edit ? "edited" : "sent");
-    }
-    
-    private boolean nullOrEmpty(String... values){
-        for(String value : values){
-            if(value == null || value.isEmpty())
-                return true;
-        }
-        
-        return false;
     }
     
     private String value(ModalInteractionEvent event, String id){
