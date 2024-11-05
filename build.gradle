@@ -50,7 +50,7 @@ dependencies {
     implementation group: 'io.github.cdancy', name: 'jenkins-rest', version: '1.0.2'
     implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.4.1'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.55.0'
-    implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.55.0'
+    implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.56.0'
 }
 
 artifacts {
