@@ -20,7 +20,9 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
+import io.codemc.api.database.DatabaseAPI;
 import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -37,13 +39,19 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
-    
+
+    public static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^https://github\\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-_.]+?)(?:\\.git)?(?:/.*)?$");
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CmdApplication.class);
+
     public CmdApplication(CodeMCBot bot){
         super(bot);
         
@@ -65,7 +73,7 @@ public class CmdApplication extends BotCommand{
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
     public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
-        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channel", "request_access"));
+        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
         if(requestChannel == null){
             CommandUtil.EmbedReply.from(hook).error("Unable to retrieve `request-access` channel.").send();
             return;
@@ -100,7 +108,10 @@ public class CmdApplication extends BotCommand{
                     userLink = field.getValue();
                 }else
                 if(field.getName().equalsIgnoreCase("repository:")){
-                    repoLink = field.getValue();
+                    String link = field.getValue();
+                    String url = link.substring(link.indexOf("(") + 1, link.indexOf(")"));
+
+                    repoLink = url.isEmpty() ? link : url;
                 }
             }
             
@@ -119,8 +130,31 @@ public class CmdApplication extends BotCommand{
                     .send();
                 return;
             }
-            
-            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str, accepted)).queue(m -> {
+
+            Matcher matcher = GITHUB_URL_PATTERN.matcher(repoLink);
+            if (!matcher.matches()) {
+                CommandUtil.EmbedReply.from(hook)
+                        .error("The user/organisation or repository name is invalid!")
+                        .send();
+                return;
+            }
+
+            String username = matcher.group(1);
+            String project = matcher.group(2);
+            String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/" + project + "/";
+            Member member = guild.getMemberById(userId);
+
+            if (accepted) {
+                String password = APIUtil.newPassword();
+                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
+                boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
+                if (!nexusSuccess || !jenkinsSuccess) return;
+
+                if (DatabaseAPI.getUser(username) == null)
+                    DatabaseAPI.addUser(username, member.getIdLong());
+            }
+
+            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
                     thread.getManager().setArchived(true)
@@ -129,8 +163,6 @@ public class CmdApplication extends BotCommand{
                 }
                 
                 message.delete().queue();
-                
-                Member member = guild.getMemberById(userId);
                 
                 if(!accepted){
                     CommandUtil.EmbedReply.from(hook)
@@ -173,7 +205,6 @@ public class CmdApplication extends BotCommand{
     }
     
     private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, boolean accepted){
-        
         String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied"))); 
         
         MessageEmbed embed = new EmbedBuilder()
@@ -191,9 +222,7 @@ public class CmdApplication extends BotCommand{
     }
     
     private static class Accept extends BotCommand{
-        
-        private final Pattern projectUrlPattern = Pattern.compile("^https://ci\\.codemc\\.io/job/[a-zA-Z0-9-]+/job/[a-zA-Z0-9-_.]+/?$");
-        
+
         public Accept(CodeMCBot bot){
             super(bot);
             
@@ -202,9 +231,8 @@ public class CmdApplication extends BotCommand{
             
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
-            this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "project-url", "The URL of the newly made Project.").setRequired(true)
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
             );
         }
         
@@ -213,28 +241,14 @@ public class CmdApplication extends BotCommand{
         
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-            long messageId = event.getOption("id", -1L, option -> {
-                try{
-                    return Long.parseLong(option.getAsString());
-                }catch(NumberFormatException ex){
-                    return -1L;
-                }
-            });
-            String projectUrl = event.getOption("project-url", null, OptionMapping::getAsString);
-            
-            if(messageId == -1L || projectUrl == null){
-                CommandUtil.EmbedReply.from(hook).error("Message ID or Project URL were not present!").send();
+            long messageId = event.getOption("id", -1L, OptionMapping::getAsLong);
+
+            if(messageId == -1L){
+                CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
                 return;
             }
             
-            if(!projectUrlPattern.matcher(projectUrl).matches()){
-                CommandUtil.EmbedReply.from(hook).error(
-                    "The provided Project URL did not match the pattern `https://ci.codemc.io/job/<user>/job/<project>`!")
-                    .send();
-                return;
-            }
-            
-            handle(bot, hook, guild, messageId, projectUrl, true);
+            handle(bot, hook, guild, messageId, null, true);
         }
     }
     
@@ -248,9 +262,9 @@ public class CmdApplication extends BotCommand{
             
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
-            this.options = Arrays.asList(
-                new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
-                new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
+                    new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
             );
         }
         

@@ -90,8 +90,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                // TODO: Add project URL here (Maybe move application handling from CmdApplication)
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "", true)
+                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), null, true)
             );
         }else{
             if(lacksRole(roleIds, denyApplicationRoles)){
@@ -100,8 +99,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                // TODO: Add project URL here (Maybe move application handling from CmdApplication)
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "", false)
+                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "Reason not Provided", false)
             );
         }
     }
@@ -110,6 +108,6 @@ public class ButtonListener extends ListenerAdapter{
         if(roleIds.isEmpty())
             return true;
         
-        return roleIds.stream().anyMatch(allowedRoleIds::contains);
+        return roleIds.stream().noneMatch(allowedRoleIds::contains);
     }
 }

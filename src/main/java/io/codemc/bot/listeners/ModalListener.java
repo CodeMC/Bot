@@ -18,8 +18,8 @@
 
 package io.codemc.bot.listeners;
 
+import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -65,6 +66,14 @@ public class ModalListener extends ListenerAdapter{
         switch(args[0]){
             case "submit" -> event.deferReply(true).queue(hook -> {
                 String user = value(event, "user");
+
+                if (!JenkinsAPI.getJenkinsUser(user).isEmpty()) {
+                    CommandUtil.EmbedReply.from(hook)
+                            .error("A Jenkins User named '" + user + "' already exists!")
+                            .send();
+                    return;
+                }
+
                 String repo = value(event, "repo");
                 String description = value(event, "description");
                 
@@ -214,48 +223,6 @@ public class ModalListener extends ListenerAdapter{
                         .error("Received Unknown Message type: `" + args[1] + "`.")
                         .send();
                 }
-            });
-                
-            case "application" -> event.deferReply(true).queue(hook -> {
-                if(args.length < 3){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Invalid Modal data. Expected `3` args but received `" + args.length + "`!")
-                        .send();
-                    return;
-                }
-                
-                if(!args[1].equals("accepted") && !args[1].equals("denied")){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received unknown Application type. Expected `accepted` or `denied` but received `" + args[1] + "`.")
-                        .send();
-                    return;
-                }
-                
-                long messageId;
-                try{
-                    messageId = Long.parseLong(args[2]);
-                }catch(NumberFormatException ex){
-                    messageId = -1L;
-                }
-                
-                if(messageId == -1L){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received Invalid Message ID. Expected number but got `" + args[2] + "` instead!")
-                        .send();
-                    return;
-                }
-                
-                boolean accepted = args[1].equals("accepted");
-                
-                String text = value(event, "text");
-                if(text == null || text.isEmpty()){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Received invalid " + (accepted ? "Project URL" : "Reason") + ". Text was empty/null.")
-                        .send();
-                    return;
-                }
-                
-                CmdApplication.handle(bot, hook, guild, messageId, text, accepted);
             });
             
             default -> CommandUtil.EmbedReply.from(event)

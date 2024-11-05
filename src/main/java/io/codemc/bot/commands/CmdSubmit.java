@@ -55,6 +55,7 @@ public class CmdSubmit extends BotCommand{
             .build();
         TextInput repoLink = TextInput.create("repoLink", "Repository Link (Leave blank if on GitHub)", TextInputStyle.SHORT)
             .setPlaceholder("https://git.example.com/CodeMC/Bot")
+            .setRequired(false)
             .build();
         TextInput description = TextInput.create("description", "Description", TextInputStyle.PARAGRAPH)
             .setPlaceholder("Discord Bot for the CodeMC Server.")

@@ -14,6 +14,7 @@
     },
     "commands": {
       "application": [],
+      "codemc": [],
       "disable": [],
       "msg": [],
       "reload": []
@@ -26,5 +27,23 @@
   "messages": {
     "accepted": [],
     "denied": []
+  },
+  "jenkins": {
+    "url": "",
+    "username": "",
+    "token": ""
+  },
+  "nexus": {
+    "url": "",
+    "username": "",
+    "password": ""
+  },
+  "database": {
+    "service": "",
+    "host": "",
+    "port": 0,
+    "database": "",
+    "username": "",
+    "password": ""
   }
 }

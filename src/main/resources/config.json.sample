@@ -26,6 +26,10 @@
         659568973079379971,
         1233971297185431582
       ],
+      "codemc": [
+        405917902865170453,
+        659568973079379971
+      ],
       "disable": [
         405917902865170453
       ],
@@ -57,5 +61,23 @@
       "",
       "You may re-apply unless mentioned otherwise in the Reason."
     ]
+  },
+  "jenkins": {
+    "url": "https://ci.codemc.io",
+    "username": "admin",
+    "token": "api_token"
+  },
+  "nexus": {
+    "url": "https://repo.codemc.io",
+    "username": "admin",
+    "password": "password"
+  },
+  "database": {
+    "service": "mariadb",
+    "host": "db.codemc.io",
+    "port": 3306,
+    "database": "codemc",
+    "username": "admin",
+    "password": "password"
   }
 }
