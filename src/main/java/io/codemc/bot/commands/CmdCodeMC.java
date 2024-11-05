@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CmdCodeMC extends BotCommand {
@@ -284,6 +285,7 @@ public class CmdCodeMC extends BotCommand {
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             AtomicInteger count = new AtomicInteger(0);
+            AtomicBoolean success = new AtomicBoolean(true);
 
             String username = event.getOption("username", null, OptionMapping::getAsString);
             if (username == null) {
@@ -291,33 +293,47 @@ public class CmdCodeMC extends BotCommand {
                         .success("Validating all Jenkins Users...")
                         .send();
 
-                JenkinsAPI.getAllJenkinsUsers().forEach(user -> validate(user, count));
+                JenkinsAPI.getAllJenkinsUsers().forEach(user -> {
+                    if (success.get())
+                        success.set(validate(null, user, count));
+                });
             } else {
-                validate(username, count);
+                success.set(validate(hook, username, count));
+                if (!success.get()) return;
             }
 
-            CommandUtil.EmbedReply.from(hook)
-                    .success("Successfully validated " + count.get() + " User(s)")
-                    .send();
+            if (success.get())
+                CommandUtil.EmbedReply.from(hook)
+                        .success("Successfully validated " + count.get() + " User(s)")
+                        .send();
+            else
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to validate user(s)!")
+                        .send();
         }
 
-        private void validate(String username, AtomicInteger count) {
+        private boolean validate(InteractionHook hook, String username, AtomicInteger count) {
+            boolean success = true;
+
             String password = APIUtil.newPassword();
             String jenkins = JenkinsAPI.getJenkinsUser(username);
 
             boolean noJenkins = jenkins == null || jenkins.isEmpty();
             if (noJenkins)
-                JenkinsAPI.createJenkinsUser(username, password);
+                success &= JenkinsAPI.createJenkinsUser(username, password);
+
+            JenkinsAPI.checkCredentials(username, password);
 
             JsonObject info = NexusAPI.getNexusRepository(username);
             if (info == null || info.isEmpty()) {
-                if (!noJenkins)
-                    JenkinsAPI.changeJenkinsPassword(username, password);
+                success &= APIUtil.createNexus(hook, username, password);
 
-                APIUtil.createNexus(null, username, password);
+                if (!noJenkins)
+                    success &= JenkinsAPI.changeJenkinsPassword(username, password);
             }
 
             count.incrementAndGet();
+            return success;
         }
     }
 
@@ -460,13 +476,7 @@ public class CmdCodeMC extends BotCommand {
 
             String password = APIUtil.newPassword();
             boolean success = APIUtil.changePassword(hook, username, password);
-            if (!success) {
-                CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to regenerate Nexus Credentials!")
-                        .send();
-
-                LOGGER.error("Failed to regenerate Nexus Credentials for {}!", username);
-            }
+            if (!success) return;
 
             CommandUtil.EmbedReply.from(hook)
                     .success("Successfully changed your password!")
