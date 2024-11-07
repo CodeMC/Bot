@@ -322,6 +322,7 @@ public class CmdCodeMC extends BotCommand {
             if (noJenkins)
                 success &= JenkinsAPI.createJenkinsUser(username, password);
 
+            JenkinsAPI.checkUserConfig(username);
             JenkinsAPI.checkCredentials(username, password);
 
             JsonObject info = NexusAPI.getNexusRepository(username);
