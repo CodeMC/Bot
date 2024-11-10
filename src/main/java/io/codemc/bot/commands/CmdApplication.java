@@ -234,7 +234,7 @@ public class CmdApplication extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = List.of(
-                    new OptionData(OptionType.INTEGER, "id", "The message id of the application.").setRequired(true)
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
             );
         }
         
@@ -243,14 +243,28 @@ public class CmdApplication extends BotCommand{
         
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-            long messageId = event.getOption("id", -1L, OptionMapping::getAsLong);
-
-            if(messageId == -1L){
+            String message = event.getOption("id", null, OptionMapping::getAsString);
+            if (message == null) {
                 CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
                 return;
             }
-            
-            handle(bot, hook, guild, messageId, null, true);
+
+            try {
+                long messageId = -1L;
+                if (message.contains("-"))
+                    messageId = Long.parseLong(message.split("-")[1]);
+                else
+                    messageId = Long.parseLong(message);
+
+                if(messageId == -1L){
+                    CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
+                    return;
+                }
+                
+                handle(bot, hook, guild, messageId, null, true);
+            } catch (NumberFormatException e) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid message ID!").send();
+            }
         }
     }
     
@@ -265,7 +279,7 @@ public class CmdApplication extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = List.of(
-                    new OptionData(OptionType.INTEGER, "id", "The message id of the application.").setRequired(true),
+                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
                     new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
             );
         }
@@ -275,15 +289,30 @@ public class CmdApplication extends BotCommand{
         
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){
-            long messageId = event.getOption("id", -1L, OptionMapping::getAsLong);
-            String reason = event.getOption("reason", null, OptionMapping::getAsString);
-            
-            if(messageId == -1L || reason == null){
-                CommandUtil.EmbedReply.from(hook).error("Message ID or Reason were not present!").send();
+            String message = event.getOption("id", null, OptionMapping::getAsString);
+            if (message == null) {
+                CommandUtil.EmbedReply.from(hook).error("Message ID was not present!").send();
                 return;
             }
-            
-            handle(bot, hook, guild, messageId, reason, false);
+
+            try {
+                long messageId = -1L;
+                if (message.contains("-"))
+                    messageId = Long.parseLong(message.split("-")[1]);
+                else
+                    messageId = Long.parseLong(message);
+                
+                String reason = event.getOption("reason", null, OptionMapping::getAsString);
+                
+                if(messageId == -1L || reason == null){
+                    CommandUtil.EmbedReply.from(hook).error("Message ID or Reason were not present!").send();
+                    return;
+                }
+                
+                handle(bot, hook, guild, messageId, reason, false);
+            } catch (NumberFormatException e) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid message ID!").send();
+            }
         }
     }
 }
