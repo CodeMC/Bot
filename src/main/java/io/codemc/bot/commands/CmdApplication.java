@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
@@ -154,7 +155,7 @@ public class CmdApplication extends BotCommand{
                     DatabaseAPI.addUser(username, member.getIdLong());
             }
 
-            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, accepted)).queue(m -> {
+            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, hook.getInteraction().getUser(), accepted)).queue(m -> {
                 ThreadChannel thread = message.getStartedThread();
                 if(thread != null && !thread.isArchived()){
                     thread.getManager().setArchived(true)
@@ -204,7 +205,7 @@ public class CmdApplication extends BotCommand{
         });
     }
     
-    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, boolean accepted){
+    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
         String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied"))); 
         
         MessageEmbed embed = new EmbedBuilder()
@@ -212,6 +213,7 @@ public class CmdApplication extends BotCommand{
             .setDescription(msg)
             .addField("User/Organisation:", userLink, true)
             .addField("Repository:", repoLink, true)
+            .addField("Reviewer:", reviewer.getAsMention(), true)
             .addField(accepted ? "New Project:" : "Reason:", str, false)
             .build();
         
@@ -232,7 +234,7 @@ public class CmdApplication extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true)
+                    new OptionData(OptionType.INTEGER, "id", "The message id of the application.").setRequired(true)
             );
         }
         
@@ -263,7 +265,7 @@ public class CmdApplication extends BotCommand{
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
             
             this.options = List.of(
-                    new OptionData(OptionType.STRING, "id", "The message id of the application.").setRequired(true),
+                    new OptionData(OptionType.INTEGER, "id", "The message id of the application.").setRequired(true),
                     new OptionData(OptionType.STRING, "reason", "The reason for the denial").setRequired(true)
             );
         }
