@@ -445,6 +445,10 @@ public class CmdCodeMC extends BotCommand {
 
             this.name = "change-password";
             this.help = "Regenerates your Nexus Credentials.";
+
+            this.options = List.of(
+                new OptionData(OptionType.STRING, "username", "The name of the account to regenerate. Use if you are linked to multiple accounts. Defaults to the first one found.").setRequired(false)
+            );
         }
 
         @Override
@@ -453,6 +457,8 @@ public class CmdCodeMC extends BotCommand {
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
+            String target = event.getOption("username", null, OptionMapping::getAsString);
+
             if (authorRole == null) {
                 CommandUtil.EmbedReply.from(hook).error("The Author role is not set up correctly!").send();
                 return;
@@ -467,11 +473,20 @@ public class CmdCodeMC extends BotCommand {
             String username = DatabaseAPI.getAllUsers().stream()
                     .filter(user -> user.getDiscord() == member.getIdLong())
                     .map(User::getUsername)
+                    .filter(user -> target == null || user.equals(target))
                     .findFirst()
                     .orElse(null);
 
             if (username == null) {
-                CommandUtil.EmbedReply.from(hook).error("You are not linked to any Jenkins/Nexus account!").send();
+                if (target == null)
+                    CommandUtil.EmbedReply.from(hook).error("You are not linked to any Jenkins/Nexus accounts!").send();
+                else
+                    CommandUtil.EmbedReply.from(hook).error("You are not linked to the specified Jenkins/Nexus account!").send();
+                return;
+            }
+
+            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+                CommandUtil.EmbedReply.from(hook).error("This user does not have a Jenkins account!").send();
                 return;
             }
 
