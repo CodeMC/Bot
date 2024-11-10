@@ -66,7 +66,9 @@ public class CmdCodeMC extends BotCommand {
                 new Validate(bot),
                 new Link(bot),
                 new Unlink(bot),
-                new ChangePassword(bot)
+                new ChangePassword(bot),
+                new CreateUser(bot),
+                new DeleteUser(bot)
         };
     }
 
@@ -350,7 +352,7 @@ public class CmdCodeMC extends BotCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "username", "The Jenkins user to validate to.").setRequired(true),
-                    new OptionData(OptionType.USER, "discord", "The discord user to link the database to.").setRequired(true)
+                    new OptionData(OptionType.USER, "discord", "The discord user to link the account to.").setRequired(true)
             );
         }
 
@@ -450,7 +452,7 @@ public class CmdCodeMC extends BotCommand {
             this.help = "Regenerates your Nexus Credentials.";
 
             this.options = List.of(
-                new OptionData(OptionType.STRING, "username", "The name of the account to regenerate. Use if you are linked to multiple accounts. Defaults to the first one found.").setRequired(false)
+                new OptionData(OptionType.STRING, "username", "The name of the account to regenerate, if you have multiple. Defaults to the first one found.").setRequired(false)
             );
         }
 
@@ -500,6 +502,110 @@ public class CmdCodeMC extends BotCommand {
             CommandUtil.EmbedReply.from(hook)
                     .success("Successfully changed your password!")
                     .send();
+        }
+    }
+
+    private static class CreateUser extends BotCommand{
+
+        public CreateUser(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "createuser";
+            this.help = "Creates a new user in the Jenkins/Nexus services.";
+
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
+
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "username", "The name of Jenkins user to create.").setRequired(true),
+                    new OptionData(OptionType.USER, "discord", "The discord user to link the account to.").setRequired(true)
+            );
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {}
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            String username = event.getOption("username", null, OptionMapping::getAsString);
+            Member target = event.getOption("discord", null, OptionMapping::getAsMember);
+
+            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
+                CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
+                return;
+            }
+
+            if (target == null) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Discord User provided!").send();
+                return;
+            }
+
+            Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
+            if (authorRole == null) {
+                CommandUtil.EmbedReply.from(hook).error("The Author role is not set up correctly!").send();
+                return;
+            }
+
+            boolean hasAuthor = target.getRoles().stream().anyMatch(role -> role.getIdLong() == authorRole.getIdLong());
+            if (!hasAuthor) {
+                guild.addRoleToMember(target, authorRole)
+                        .reason("[Access Request] Author Status granted by " + member.getUser().getEffectiveName())
+                        .queue(
+                                v -> CommandUtil.EmbedReply.from(hook)
+                                        .success("Granted Author Status to " + target.getUser().getEffectiveName() + "!")
+                                        .send(),
+                                new ErrorHandler()
+                                        .handle(
+                                                ErrorResponse.MISSING_PERMISSIONS,
+                                                e -> CommandUtil.EmbedReply.from(hook)
+                                                        .appendWarning("I lack the `Manage Roles` permission to add the role.")
+                                                        .send()
+                                        )
+                        );
+            }
+
+            String password = APIUtil.newPassword();
+            DatabaseAPI.addUser(username, target.getIdLong());
+            JenkinsAPI.createJenkinsUser(username, password);
+            APIUtil.createNexus(hook, username, password);
+
+            CommandUtil.EmbedReply.from(hook).success("Successfully created user " + username + " and linked it to " + target.getUser().getEffectiveName() + "!").send();
+            LOGGER.info("Created user '" + username + "' in the Jenkins/Nexus services.");
+        }
+    }
+
+    private static class DeleteUser extends BotCommand{
+
+        public DeleteUser(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "deluser";
+            this.help = "Deletes a user in the Jenkins/Nexus services. Does not affect discord roles.";
+
+            this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
+
+            this.options = List.of(
+                    new OptionData(OptionType.STRING, "username", "The name of Jenkins user to delete.").setRequired(true)
+            );
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {}
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            String username = event.getOption("username", null, OptionMapping::getAsString);
+
+            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
+                CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
+                return;
+            }
+
+            DatabaseAPI.removeUser(username);
+            JenkinsAPI.deleteUser(username);
+            NexusAPI.deleteNexus(username);
+
+            CommandUtil.EmbedReply.from(hook).success("Successfully deleted user " + username + "!").send();
+            LOGGER.info("Deleted user '" + username + "' from the Jenkins/Nexus services.");
         }
     }
 }
