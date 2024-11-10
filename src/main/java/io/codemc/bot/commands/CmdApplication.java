@@ -93,7 +93,7 @@ public class CmdApplication extends BotCommand{
                 return;
             }
             
-            String userId = embed.getFooter().getText();
+            String userId = embed.getFooter().getText().trim();
             if(userId == null || userId.isEmpty()){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
                 return;
@@ -151,8 +151,12 @@ public class CmdApplication extends BotCommand{
                 boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
                 if (!nexusSuccess || !jenkinsSuccess) return;
 
-                if (DatabaseAPI.getUser(username) == null)
-                    DatabaseAPI.addUser(username, member.getIdLong());
+                if (member == null)
+                    LOGGER.warn("Member with ID '{}' not found!", userId);
+                else {
+                    if (DatabaseAPI.getUser(username) == null)
+                        DatabaseAPI.addUser(username, member.getIdLong());
+                }
             }
 
             channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, hook.getInteraction().getUser(), accepted)).queue(m -> {
