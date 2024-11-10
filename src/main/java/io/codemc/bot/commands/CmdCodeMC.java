@@ -405,7 +405,8 @@ public class CmdCodeMC extends BotCommand {
             this.allowedRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
 
             this.options = List.of(
-                    new OptionData(OptionType.USER, "discord", "The discord user to unlink.").setRequired(true)
+                    new OptionData(OptionType.USER, "discord", "The discord user to unlink.").setRequired(true),
+                    new OptionData(OptionType.STRING, "username", "The Jenkins user to unlink from. Use if the discord user is linked to multiple accounts.").setRequired(false)
             );
         }
 
@@ -415,6 +416,7 @@ public class CmdCodeMC extends BotCommand {
         @Override
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
+            String userTarget = event.getOption("username", null, OptionMapping::getAsString);
 
             if (target == null) {
                 CommandUtil.EmbedReply.from(hook).error("Invalid Discord User provided!").send();
@@ -424,6 +426,7 @@ public class CmdCodeMC extends BotCommand {
             String username = DatabaseAPI.getAllUsers().stream()
                     .filter(user -> user.getDiscord() == target.getIdLong())
                     .map(User::getUsername)
+                    .filter(user -> userTarget == null || user.equals(userTarget))
                     .findFirst()
                     .orElse(null);
 
