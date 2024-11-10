@@ -4,6 +4,13 @@ import io.codemc.api.Generator;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +18,8 @@ public class APIUtil {
 
     public static final int PASSWORD_SIZE = 32;
     private static final Logger LOGGER = LoggerFactory.getLogger(APIUtil.class);
+    private static final HttpClient CLIENT = HttpClient.newHttpClient();
+    public static String GITHUB_API_TOKEN = "";
 
     public APIUtil() {}
 
@@ -44,7 +53,7 @@ public class APIUtil {
             return false;
         }
 
-        boolean userSuccess = JenkinsAPI.createJenkinsUser(username, password);
+        boolean userSuccess = JenkinsAPI.createJenkinsUser(username, password, isGroup(username));
         if (!userSuccess) {
             CommandUtil.EmbedReply.from(hook)
                     .error("Failed to create Jenkins User for " + username + "!")
@@ -100,6 +109,30 @@ public class APIUtil {
             return false;
         }
         return true;
+    }
+
+    public static boolean isGroup(String username) {
+        try {
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.github.com/users/" + username))
+                .GET();
+
+            if (!GITHUB_API_TOKEN.isEmpty())
+                builder.header("Authorization", "Bearer " + GITHUB_API_TOKEN);
+
+            HttpRequest req = builder.build();
+
+            HttpResponse<String> res = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() == 404) return false;
+
+            return res.body().contains("\"type\":\"Organization\"");
+        } catch (IOException e) {
+            LOGGER.error("Failed to check if {} is a group!", username, e);
+            return false;
+        } catch (InterruptedException e) {
+            LOGGER.error("Interrupted when checking if {} is a group!", username, e);
+            return false;
+        }
     }
 
 }

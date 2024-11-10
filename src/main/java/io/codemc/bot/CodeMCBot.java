@@ -29,6 +29,7 @@ import io.codemc.bot.commands.*;
 import io.codemc.bot.config.ConfigHandler;
 import io.codemc.bot.listeners.ButtonListener;
 import io.codemc.bot.listeners.ModalListener;
+import io.codemc.bot.utils.APIUtil;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -136,6 +137,12 @@ public class CodeMCBot{
             return;
         }
         logger.info("Connected to Nexus at {}", nexus.getUrl());
+
+        APIUtil.GITHUB_API_TOKEN = configHandler.getString("github");
+        if (APIUtil.GITHUB_API_TOKEN.isEmpty())
+            logger.warn("GitHub API Token is empty! This may cause issues with GitHub API requests.");
+        else
+            logger.info("GitHub API Token set");
         
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(

@@ -79,5 +79,6 @@
     "database": "codemc",
     "username": "admin",
     "password": "password"
-  }
+  },
+  "github": "token"
 }

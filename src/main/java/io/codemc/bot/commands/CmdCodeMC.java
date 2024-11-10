@@ -322,7 +322,7 @@ public class CmdCodeMC extends BotCommand {
 
             boolean noJenkins = jenkins == null || jenkins.isEmpty();
             if (noJenkins)
-                success &= JenkinsAPI.createJenkinsUser(username, password);
+                success &= JenkinsAPI.createJenkinsUser(username, password, APIUtil.isGroup(username));
 
             JenkinsAPI.checkUserConfig(username);
             JenkinsAPI.checkCredentials(username, password);
@@ -565,7 +565,7 @@ public class CmdCodeMC extends BotCommand {
 
             String password = APIUtil.newPassword();
             DatabaseAPI.addUser(username, target.getIdLong());
-            JenkinsAPI.createJenkinsUser(username, password);
+            JenkinsAPI.createJenkinsUser(username, password, APIUtil.isGroup(username));
             APIUtil.createNexus(hook, username, password);
 
             CommandUtil.EmbedReply.from(hook).success("Successfully created user " + username + " and linked it to " + target.getUser().getEffectiveName() + "!").send();
