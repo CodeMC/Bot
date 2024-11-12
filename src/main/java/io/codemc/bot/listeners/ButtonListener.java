@@ -106,6 +106,7 @@ public class ButtonListener extends ListenerAdapter{
             TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("(Leave empty for no reason)")
                 .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
+                .setRequired(false)
                 .build();
             
             Modal modal = Modal.create("deny_application:" + event.getMessageId(), "Deny Application")
