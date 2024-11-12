@@ -64,3 +64,9 @@ shadowJar {
 application {
     mainClassName = 'io.codemc.bot.CodeMCBot'
 }
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
