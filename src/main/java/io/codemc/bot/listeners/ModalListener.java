@@ -20,6 +20,7 @@ package io.codemc.bot.listeners;
 
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
+import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -27,7 +28,6 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -67,6 +67,11 @@ public class ModalListener extends ListenerAdapter{
             case "submit" -> event.deferReply(true).queue(hook -> {
                 String user = value(event, "user");
 
+                if(user == null || user.isEmpty()){
+                    CommandUtil.EmbedReply.from(hook).error("The provided user was invalid.").send();
+                    return;
+                }
+                
                 if (!JenkinsAPI.getJenkinsUser(user).isEmpty()) {
                     CommandUtil.EmbedReply.from(hook)
                             .error("A Jenkins User named '" + user + "' already exists!")
@@ -77,7 +82,7 @@ public class ModalListener extends ListenerAdapter{
                 String repo = value(event, "repo");
                 String description = value(event, "description");
                 
-                if(user == null || user.isEmpty() || repo == null || repo.isEmpty() || description == null || description.isEmpty()){
+                if(repo == null || repo.isEmpty() || description == null || description.isEmpty()){
                     CommandUtil.EmbedReply.from(hook).error(
                         "The option User, Repo and/or Description was not set properly!")
                         .send();
@@ -223,6 +228,32 @@ public class ModalListener extends ListenerAdapter{
                         .error("Received Unknown Message type: `" + args[1] + "`.")
                         .send();
                 }
+            });
+            
+            case "deny_application" -> event.deferReply(true).queue(hook -> {
+                if(args.length == 1){
+                    CommandUtil.EmbedReply.from(hook).error("Received invalid Deny Application modal!").send();
+                    return;
+                }
+                
+                long messageId;
+                try{
+                    messageId = Long.parseLong(args[1]);
+                }catch(NumberFormatException ex){
+                    messageId = -1L;
+                }
+                
+                if(messageId == -1L){
+                    CommandUtil.EmbedReply.from(hook).error("Received invalid message ID: " + args[1]).send();
+                    return;
+                }
+                
+                String reason = value(event, "reason");
+                
+                if(reason == null || reason.isEmpty())
+                    reason = "*No reason provided*";
+                
+                CmdApplication.handle(this.bot, hook, guild, messageId, reason, false);
             });
             
             default -> CommandUtil.EmbedReply.from(event)

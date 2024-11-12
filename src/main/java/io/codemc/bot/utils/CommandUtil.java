@@ -92,7 +92,7 @@ public class CommandUtil{
                 modalEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
             if(type instanceof ButtonInteractionEvent buttonEvent){
-                buttonEvent.replyEmbeds(builder.build()).queue();
+                buttonEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }else
             if(type instanceof InteractionHook hook){
                 hook.editOriginal(EmbedBuilder.ZERO_WIDTH_SPACE).setEmbeds(builder.build()).queue();

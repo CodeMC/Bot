@@ -23,9 +23,14 @@ import io.codemc.bot.commands.CmdApplication;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -98,9 +103,17 @@ public class ButtonListener extends ListenerAdapter{
                 return;
             }
             
-            event.deferReply(true).queue(
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), "Reason not Provided", false)
-            );
+            TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
+                .setPlaceholder("(Leave empty for no reason)")
+                .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
+                .setRequired(false)
+                .build();
+            
+            Modal modal = Modal.create("deny_application:" + event.getMessageId(), "Deny Application")
+                .addComponents(ActionRow.of(reason))
+                .build();
+            
+            event.replyModal(modal).queue();
         }
     }
     
