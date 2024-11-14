@@ -43,7 +43,7 @@ import java.util.List;
 public class CodeMCBot{
     
     private final Logger logger = LoggerFactory.getLogger(CodeMCBot.class);
-    private final ConfigHandler configHandler = new ConfigHandler();
+    private ConfigHandler configHandler = new ConfigHandler();
     
     public static void main(String[] args){
         try{
