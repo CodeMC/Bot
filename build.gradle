@@ -20,6 +20,7 @@ plugins {
     id "java"
     id "application"
     id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "jacoco"
 }
 
 group 'io.codemc'
@@ -55,6 +56,26 @@ dependencies {
 
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.11.3'
     testImplementation group: 'dev.coly', name: 'JDATesting', version: '0.7.0'
+}
+
+tasks {
+    test {
+        useJUnitPlatform()
+    }
+
+    jacocoTestReport {
+        dependsOn test
+
+        reports {
+            csv.required = false
+
+            xml.required = true
+            xml.outputLocation = layout.buildDirectory.file("jacoco.xml").get().asFile
+
+            html.required = true
+            html.outputLocation = layout.buildDirectory.dir("jacocoHtml").get().asFile
+        }
+    }
 }
 
 artifacts {
