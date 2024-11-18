@@ -234,6 +234,10 @@ public class CmdCodeMC extends BotCommand {
 
             long id = dbUser.getDiscord();
             Member user = guild.getMemberById(id);
+            if (user == null) {
+                CommandUtil.EmbedReply.from(hook).success("Successfully removed " + username + " from the CodeMC Services!").send();
+                return;
+            }
 
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
             if (authorRole == null) {

@@ -30,6 +30,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.MessageEmbed.Footer;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
@@ -88,28 +89,36 @@ public class CmdApplication extends BotCommand{
             }
             
             MessageEmbed embed = embeds.get(0);
-            if(embed.getFooter() == null || embed.getFields().isEmpty()){
+            Footer footer = embed.getFooter();
+            if(footer == null || embed.getFields().isEmpty()){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a footer or any Embed Fields.").send();
                 return;
             }
-            
-            String userId = embed.getFooter().getText().trim();
-            if(userId == null || userId.isEmpty()){
+
+            String footerText = footer.getText();
+            if(footerText == null || footerText.isEmpty()){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
                 return;
             }
-            
+
+            String userId = footerText.trim();
             String userLink = null;
             String repoLink = null;
             for(MessageEmbed.Field field : embed.getFields()){
-                if(field.getName() == null || field.getValue() == null)
+                String name = field.getName();
+                if(name == null || field.getValue() == null)
                     continue;
                 
-                if(field.getName().equalsIgnoreCase("user/organisation:")){
+                if(name.equalsIgnoreCase("user/organisation:")){
                     userLink = field.getValue();
                 }else
-                if(field.getName().equalsIgnoreCase("repository:")){
+                if(name.equalsIgnoreCase("repository:")){
                     String link = field.getValue();
+                    if (link == null || link.isEmpty()) {
+                        CommandUtil.EmbedReply.from(hook).error("Repository field is empty!").send();
+                        return;
+                    }
+
                     String url = link.substring(link.indexOf("(") + 1, link.indexOf(")"));
 
                     repoLink = url.isEmpty() ? link : url;

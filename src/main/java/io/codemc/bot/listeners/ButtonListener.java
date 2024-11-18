@@ -32,12 +32,15 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class ButtonListener extends ListenerAdapter{
     
     private final CodeMCBot bot;
+    private final Logger logger = LoggerFactory.getLogger(ButtonListener.class);
     
     public ButtonListener(CodeMCBot bot){
         this.bot = bot;
@@ -61,6 +64,7 @@ public class ButtonListener extends ListenerAdapter{
         
         if(acceptApplicationRoles.isEmpty() || denyApplicationRoles.isEmpty()){
             CommandUtil.EmbedReply.from(event).error("No roles for accepting or denying applications set!").send();
+            logger.error("No roles for accepting or denying applications set!");
             return;
         }
         
@@ -69,8 +73,15 @@ public class ButtonListener extends ListenerAdapter{
             CommandUtil.EmbedReply.from(event).error("Cannot get Member from Server!").send();
             return;
         }
+
+        String id = event.getButton().getId();
+        if (id == null) {
+            CommandUtil.EmbedReply.from(event).error("Received Button Interaction with no ID!").send();
+            logger.error("Received Button Interaction with no ID!");
+            return;
+        }
         
-        String[] values = event.getButton().getId().split(":");
+        String[] values = id.split(":");
         if(values.length < 4 || !values[0].equals("application")){
             CommandUtil.EmbedReply.from(event).error("Received non-application button event!").send();
             return;
