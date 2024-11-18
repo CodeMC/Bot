@@ -34,6 +34,8 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +44,11 @@ import java.util.List;
 
 public class CodeMCBot{
     
-    private final Logger logger = LoggerFactory.getLogger(CodeMCBot.class);
-    private ConfigHandler configHandler = new ConfigHandler();
+    @VisibleForTesting
+    Logger logger = LoggerFactory.getLogger(CodeMCBot.class);
+
+    @VisibleForTesting
+    ConfigHandler configHandler = new ConfigHandler();
     
     public static void main(String[] args){
         try{
@@ -53,33 +58,13 @@ public class CodeMCBot{
         }
     }
     
-    private void start() throws LoginException{
-        if(!configHandler.loadConfig()){
-            logger.warn("Unable to load config.json! See previous logs for any errors.");
-            System.exit(1);
-            return;
-        }
-        
+    @VisibleForTesting
+    void start() throws LoginException{
+        validateConfig();
+
         String token = configHandler.getString("bot_token");
-        if(token == null || token.isEmpty()){
-            logger.warn("Received invalid Bot Token!");
-            System.exit(1);
-            return;
-        }
-        
         long owner = configHandler.getLong("users", "owner");
-        if(owner == -1L){
-            logger.warn("Unable to retrieve Owner ID. This value is required!");
-            System.exit(1);
-            return;
-        }
-        
         long guildId = configHandler.getLong("server");
-        if(guildId == -1L){
-            logger.warn("Unable to retrieve Server ID. This value is required!");
-            System.exit(1);
-            return;
-        }
         
         CommandClientBuilder clientBuilder = new CommandClientBuilder().setActivity(null).forceGuildOnly(guildId);
         
@@ -98,6 +83,40 @@ public class CodeMCBot{
             clientBuilder.setCoOwnerIds(coOwnerIds);
         }
 
+        initializeAPI();
+        login(clientBuilder, token);
+    }
+
+    @VisibleForTesting
+    final void validateConfig() {
+        if(!configHandler.loadConfig()){
+            logger.warn("Unable to load config.json! See previous logs for any errors.");
+            System.exit(1);
+            return;
+        }
+        
+        String token = configHandler.getString("bot_token");
+        if(token == null || token.isEmpty()){
+            logger.warn("Received invalid Bot Token!");
+            System.exit(1);
+            return;
+        }
+        
+        if(configHandler.getLong("users", "owner") == -1L){
+            logger.warn("Unable to retrieve Owner ID. This value is required!");
+            System.exit(1);
+            return;
+        }
+        
+        if(configHandler.getLong("server") == -1L){
+            logger.warn("Unable to retrieve Server ID. This value is required!");
+            System.exit(1);
+            return;
+        }
+    }
+
+    @VisibleForTesting
+    final void initializeAPI() {
         logger.info("Initializing API...");
         JenkinsConfig jenkins = new JenkinsConfig(
                 configHandler.getString("jenkins", "url"),
@@ -143,7 +162,9 @@ public class CodeMCBot{
             logger.warn("GitHub API Token is empty! This may cause issues with GitHub API requests.");
         else
             logger.info("GitHub API Token set");
-        
+    }
+
+    private void login(CommandClientBuilder clientBuilder, String token) throws LoginException{
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(
             new CmdApplication(this),
