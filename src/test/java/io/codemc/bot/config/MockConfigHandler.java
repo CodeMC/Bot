@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class TestConfigHandler extends ConfigHandler {
+public class MockConfigHandler extends ConfigHandler {
 
     private static final Map<String, String> TEST_CONFIG = Stream.of(
             "bot_token test_token",
@@ -43,11 +43,10 @@ public class TestConfigHandler extends ConfigHandler {
             "database.port 3306",
             "database.database test",
             "database.username admin",
-            "database.password password",
-            "github token"
+            "database.password password"
     ).map(s -> s.split("\\s", 1)).collect(Collectors.toMap(s -> s[0], s -> s[1]));
 
-    private final Logger logger = LoggerFactory.getLogger(TestConfigHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(MockConfigHandler.class);
 
 
     @Override
