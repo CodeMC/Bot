@@ -61,8 +61,8 @@ jobs:
         run: bash .github/test.sh
       - name: Gradle Test
         run: ./gradlew test
-      - name: Stop Servers
-        run: bash .github/stop.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Stop Servers
         if: success() || failure()
         run: |
