@@ -39,10 +39,10 @@ jobs:
       - name: Change Permissions
         run: chmod +x ./gradlew
       - name: Gradle Build
-        run: ./gradlew build
+        run: ./gradlew build -x test
   
   test:
-    needs: build
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
