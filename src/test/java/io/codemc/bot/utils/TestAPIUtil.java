@@ -2,6 +2,7 @@ package io.codemc.bot.utils;
 
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
+import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -15,6 +16,8 @@ public class TestAPIUtil {
 
     @BeforeAll
     public static void ping() {
+        MockCodeMCBot.INSTANCE.validateConfig();
+
         assertTrue(NexusAPI.ping());
         assertTrue(JenkinsAPI.ping());
     }
@@ -81,13 +84,13 @@ public class TestAPIUtil {
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createJenkinsJob(h1, user1, p1, j1, "https://github.com/gmitch215/SocketMC"));
-        assertNotNull(JenkinsAPI.getJenkinsUser(user1));
+        assertFalse(JenkinsAPI.getJenkinsUser(user1).isEmpty());
         assertNotNull(JenkinsAPI.getJobInfo(user1, j1));
 
         assertTrue(JenkinsAPI.deleteJob(user1, j1));
         assertNull(JenkinsAPI.getJobInfo(user1, j1));
         assertTrue(JenkinsAPI.deleteUser(user1));
-        assertNull(JenkinsAPI.getJenkinsUser(user1));
+        assertTrue(JenkinsAPI.getJenkinsUser(user1).isEmpty());
 
         String user2 = "CodeMC";
         String j2 = "Bot";
@@ -96,13 +99,13 @@ public class TestAPIUtil {
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createJenkinsJob(h2, user2, p2, j2, "https://github.com/CodeMC/Bot"));
-        assertNotNull(JenkinsAPI.getJenkinsUser(user2));
+        assertFalse(JenkinsAPI.getJenkinsUser(user2).isEmpty());
         assertNotNull(JenkinsAPI.getJobInfo(user2, j2));
 
         assertTrue(JenkinsAPI.deleteJob(user2, j2));
         assertNull(JenkinsAPI.getJobInfo(user2, j2));
         assertTrue(JenkinsAPI.deleteUser(user2));
-        assertNull(JenkinsAPI.getJenkinsUser(user2));
+        assertTrue(JenkinsAPI.getJenkinsUser(user2).isEmpty());
     }
 
     @Test
@@ -118,6 +121,10 @@ public class TestAPIUtil {
 
         String newPassword = APIUtil.newPassword();
         assertTrue(APIUtil.changePassword(hook, username, newPassword));
+
+        assertTrue(JenkinsAPI.deleteJob(username, job));
+        assertTrue(JenkinsAPI.deleteUser(username));
+        assertTrue(NexusAPI.deleteNexus(username));
     }
 
 }

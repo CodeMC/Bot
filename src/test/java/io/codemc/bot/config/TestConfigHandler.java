@@ -14,10 +14,9 @@ public class TestConfigHandler {
     @Test
     public void testGetString() {
         assertEquals("TOKEN", handler.getString("bot_token"));
-        assertEquals("token", handler.getString("github"));
 
         assertEquals("admin", handler.getString("jenkins", "username"));
-        assertEquals("https://ci.codemc.io/", handler.getString("jenkins", "url"));
+        assertEquals("http://localhost:8080", handler.getString("jenkins", "url"));
 
         assertEquals("test", handler.getString("database", "database"));
         assertEquals("localhost", handler.getString("database", "host"));
