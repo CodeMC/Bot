@@ -3,6 +3,7 @@ package io.codemc.bot;
 import dev.coly.jdat.JDAObjects;
 import dev.coly.util.Callback;
 import io.codemc.bot.config.ConfigHandler;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -24,6 +25,7 @@ public class MockJDA {
 
     private static final ConfigHandler CONFIG = MockCodeMCBot.INSTANCE.getConfigHandler();
 
+    public static final JDA JDA = JDAObjects.getJDA();
     public static final Guild GUILD = mockGuild();
 
     public static final TextChannel REQUEST_CHANNEL = mockChannel("request_access");
@@ -39,15 +41,13 @@ public class MockJDA {
 
     public static InteractionHook mockInteractionHook(Member user, MessageChannel channel, InteractionType type) {
         InteractionHook hook = mock(InteractionHook.class);
-        when(hook.getJDA()).thenReturn(JDAObjects.getJDA());
+        when(hook.getJDA()).thenReturn(JDA);
         when(hook.getExpirationTimestamp()).thenReturn(0L);
 
         Interaction interaction = mock(Interaction.class);
-        when(interaction.getJDA()).thenReturn(JDAObjects.getJDA());
+        when(interaction.getJDA()).thenReturn(JDA);
         when(interaction.getChannel()).thenReturn(channel);
-        when(interaction.getChannelIdLong()).thenReturn(channel.getIdLong());
         when(interaction.getMember()).thenReturn(user);
-        when(interaction.getUser()).thenReturn(user.getUser());
         when(interaction.getGuild()).thenReturn(GUILD);
         when(interaction.getTypeRaw()).thenReturn(type.getKey());
 
@@ -65,7 +65,9 @@ public class MockJDA {
         long serverId = CONFIG.getLong("server");
 
         when(guild.getIdLong()).thenReturn(serverId);
-        when(guild.getJDA()).thenReturn(JDAObjects.getJDA());
+        when(guild.getJDA()).thenReturn(JDA);
+        when(guild.getTextChannels()).thenReturn(CHANNELS);
+        when(guild.getRoles()).thenReturn(ROLES);
 
         when(guild.addRoleToMember(any(UserSnowflake.class), any(Role.class))).thenAnswer(inv -> {
             Member member = JDAObjects.getMember(inv.getArgument(0), "0000");
@@ -100,7 +102,7 @@ public class MockJDA {
     private static Role mockRole(String name, long id, int position) {
         Role role = mock(Role.class);
 
-        when(role.getJDA()).thenReturn(JDAObjects.getJDA());
+        when(role.getJDA()).thenReturn(JDA);
         when(role.getName()).thenReturn(name);
         when(role.getIdLong()).thenReturn(id);
         when(role.getGuild()).thenReturn(GUILD);
