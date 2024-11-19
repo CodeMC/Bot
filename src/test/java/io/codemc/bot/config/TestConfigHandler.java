@@ -3,7 +3,6 @@ package io.codemc.bot.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.codemc.bot.MockCodeMCBot;
@@ -14,51 +13,51 @@ public class TestConfigHandler {
 
     @Test
     public void testGetString() {
-        assertEquals(handler.getString("bot_token"), "TOKEN");
-        assertEquals(handler.getString("github"), "token");
+        assertEquals("TOKEN", handler.getString("bot_token"));
+        assertEquals("token", handler.getString("github"));
 
-        assertEquals(handler.getString("jenkins", "username"), "admin");
-        assertEquals(handler.getString("jenkins", "url"), "https://ci.codemc.io/");
+        assertEquals("admin", handler.getString("jenkins", "username"));
+        assertEquals("https://ci.codemc.io/", handler.getString("jenkins", "url"));
 
-        assertEquals(handler.getString("database", "database"), "test");
-        assertEquals(handler.getString("database", "host"), "localhost");
-        assertEquals(handler.getString("database", "username"), "admin");
+        assertEquals("test", handler.getString("database", "database"));
+        assertEquals("localhost", handler.getString("database", "host"));
+        assertEquals("admin", handler.getString("database", "username"));
 
-        assertNotEquals(handler.getString("nexus", "password"), "unset");
+        assertNotEquals("unset", handler.getString("nexus", "password"));
     }
 
     @Test
     public void testGetLong() {
-        assertEquals(handler.getLong("server"), 405915656039694336L);
-        assertEquals(handler.getLong("author_role"), 405918641859723294L);
+        assertEquals(405915656039694336L, handler.getLong("server"));
+        assertEquals(405918641859723294L, handler.getLong("author_role"));
 
-        assertEquals(handler.getLong("uesrs", "owner"), 204232208049766400L);
-        assertEquals(handler.getLong("channels", "request_access"), 1233971297185431582L);
-        assertEquals(handler.getLong("channels", "accepted_requests"), 784119059138478080L);
-        assertEquals(handler.getLong("channels", "rejected_requests"), 800423355551449098L);
+        assertEquals(204232208049766400L, handler.getLong("users", "owner"));
+        assertEquals(1233971297185431582L, handler.getLong("channels", "request_access"));
+        assertEquals(784119059138478080L, handler.getLong("channels", "accepted_requests"));
+        assertEquals(800423355551449098L, handler.getLong("channels", "rejected_requests"));
     }
 
     @Test
     public void testGetStringList() {
-        assertEquals(handler.getStringList("messages", "accepted").size(), 4);
-        assertEquals(handler.getStringList("messages", "accepted").get(0), "Your request has been **accepted**!");
+        assertEquals(4, handler.getStringList("messages", "accepted").size());
+        assertEquals("Your request has been **accepted**!", handler.getStringList("messages", "accepted").get(0));
 
-        assertEquals(handler.getStringList("messages", "denied").size(), 4);
-        assertEquals(handler.getStringList("messages", "denied").get(0), "Your request has been **rejected**!");
+        assertEquals(4, handler.getStringList("messages", "denied").size());
+        assertEquals("Your request has been **rejected**!", handler.getStringList("messages", "denied").get(0));
     }
 
     @Test
     public void testGetLongList() {
-        assertEquals(handler.getLongList("allowed_roles", "applications", "accept").size(), 3);
-        assertEquals(handler.getLongList("allowed_roles", "applications", "accept").get(0), 405917902865170453L);
+        assertEquals(3, handler.getLongList("allowed_roles", "applications", "accept").size());
+        assertEquals(405917902865170453L, handler.getLongList("allowed_roles", "applications", "accept").get(0));
 
-        assertEquals(handler.getLongList("allowed_roles", "applications", "deny").size(), 3);
-        assertEquals(handler.getLongList("allowed_roles", "applications", "deny").get(0), 405917902865170453L);
+        assertEquals(3, handler.getLongList("allowed_roles", "applications", "deny").size());
+        assertEquals(405917902865170453L, handler.getLongList("allowed_roles", "applications", "deny").get(0));
     }
 
     @Test
     public void testGetInt() {
-        assertEquals(handler.getInt("database", "port"), 3306);
+        assertEquals(3306, handler.getInt("database", "port"));
     }
 
 }
