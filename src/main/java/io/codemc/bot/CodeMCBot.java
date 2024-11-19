@@ -60,6 +60,7 @@ public class CodeMCBot{
     
     @VisibleForTesting
     void start() throws LoginException{
+        loadConfig();
         validateConfig();
 
         String token = configHandler.getString("bot_token");
@@ -87,14 +88,18 @@ public class CodeMCBot{
         login(clientBuilder, token);
     }
 
-    @VisibleForTesting
-    final void validateConfig() {
+    private void loadConfig() {
         if(!configHandler.loadConfig()){
             logger.warn("Unable to load config.json! See previous logs for any errors.");
             System.exit(1);
             return;
         }
         
+        logger.info("Loaded config.json");
+    }
+
+    @VisibleForTesting
+    public final void validateConfig() {
         String token = configHandler.getString("bot_token");
         if(token == null || token.isEmpty()){
             logger.warn("Received invalid Bot Token!");
@@ -143,7 +148,7 @@ public class CodeMCBot{
 
         boolean jenkinsPing = JenkinsAPI.ping();
         if (!jenkinsPing) {
-            logger.error("Failed to connect to Jenkins at {}!", jenkins.getUrl());
+            logger.error("Failed to connect to Jenkins at '{}'!", jenkins.getUrl());
             System.exit(1);
             return;
         }
@@ -151,7 +156,7 @@ public class CodeMCBot{
 
         boolean nexusPing = NexusAPI.ping();
         if (!nexusPing) {
-            logger.error("Failed to connect to Nexus at {}!", nexus.getUrl());
+            logger.error("Failed to connect to Nexus at '{}'!", nexus.getUrl());
             System.exit(1);
             return;
         }
