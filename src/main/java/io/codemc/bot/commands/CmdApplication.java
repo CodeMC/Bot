@@ -263,7 +263,7 @@ public class CmdApplication extends BotCommand{
             }
 
             try {
-                long messageId = -1L;
+                long messageId;
                 if (message.contains("-"))
                     messageId = Long.parseLong(message.split("-")[1]);
                 else
@@ -309,7 +309,7 @@ public class CmdApplication extends BotCommand{
             }
 
             try {
-                long messageId = -1L;
+                long messageId;
                 if (message.contains("-"))
                     messageId = Long.parseLong(message.split("-")[1]);
                 else
