@@ -6,5 +6,5 @@ chmod +x ./build/tmp/CodeMC-API/.github/test.sh
 
 # Run API Server
 cd build/tmp/CodeMC-API
-/.github/test.sh
+./.github/test.sh
 cd ../../../
