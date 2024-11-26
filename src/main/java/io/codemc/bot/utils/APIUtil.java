@@ -45,9 +45,10 @@ public class APIUtil {
 
     public static boolean createJenkinsJob(InteractionHook hook, String username, String password, String project, String repoLink) {
         if (!JenkinsAPI.getJenkinsUser(username).isEmpty()) {
-            CommandUtil.EmbedReply.from(hook)
-                    .error("Jenkins User for " + username + " already exists!")
-                    .send();
+            if (hook != null)
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Jenkins User for " + username + " already exists!")
+                        .send();
 
             LOGGER.error("Jenkins User for {} already exists!", username);
             return false;
@@ -55,9 +56,10 @@ public class APIUtil {
 
         boolean userSuccess = JenkinsAPI.createJenkinsUser(username, password, isGroup(username));
         if (!userSuccess) {
-            CommandUtil.EmbedReply.from(hook)
-                    .error("Failed to create Jenkins User for " + username + "!")
-                    .send();
+            if (hook != null)
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to create Jenkins User for " + username + "!")
+                        .send();
 
             LOGGER.error("Failed to create Jenkins User for {}!", username);
             return false;
@@ -66,9 +68,10 @@ public class APIUtil {
         boolean freestyle = JenkinsAPI.isFreestyle(repoLink);
         boolean jobSuccess = JenkinsAPI.createJenkinsJob(username, project, repoLink, freestyle);
         if (!jobSuccess) {
-            CommandUtil.EmbedReply.from(hook)
-                    .error("Failed to create Jenkins Job '" + project + "' for " + username + "!")
-                    .send();
+            if (hook != null)
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to create Jenkins Job '" + project + "' for " + username + "!")
+                        .send();
 
             LOGGER.error("Failed to create Jenkins Job '{}' for {}!", project, username);
             return false;
@@ -76,9 +79,10 @@ public class APIUtil {
 
         boolean triggerBuild = JenkinsAPI.triggerBuild(username, project);
         if (!triggerBuild) {
-            CommandUtil.EmbedReply.from(hook)
-                    .error("Failed to trigger Jenkins Build for " + username + "!")
-                    .send();
+            if (hook != null)
+                CommandUtil.EmbedReply.from(hook)
+                        .error("Failed to trigger Jenkins Build for " + username + "!")
+                        .send();
 
             LOGGER.error("Failed to trigger Jenkins Build for {}!", username);
             return false;

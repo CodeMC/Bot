@@ -3,6 +3,7 @@ package io.codemc.bot.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.codemc.bot.MockCodeMCBot;
@@ -12,6 +13,7 @@ public class TestConfigHandler {
     private final ConfigHandler handler = MockCodeMCBot.INSTANCE.getConfigHandler();
 
     @Test
+    @DisplayName("Test ConfigHandler#getString")
     public void testGetString() {
         assertEquals("TOKEN", handler.getString("bot_token"));
 
@@ -26,6 +28,7 @@ public class TestConfigHandler {
     }
 
     @Test
+    @DisplayName("Test ConfigHandler#getLong")
     public void testGetLong() {
         assertEquals(405915656039694336L, handler.getLong("server"));
         assertEquals(405918641859723294L, handler.getLong("author_role"));
@@ -37,6 +40,7 @@ public class TestConfigHandler {
     }
 
     @Test
+    @DisplayName("Test ConfigHandler#getStringList")
     public void testGetStringList() {
         assertEquals(4, handler.getStringList("messages", "accepted").size());
         assertEquals("Your request has been **accepted**!", handler.getStringList("messages", "accepted").get(0));
@@ -46,6 +50,7 @@ public class TestConfigHandler {
     }
 
     @Test
+    @DisplayName("Test ConfigHandler#getLongList")
     public void testGetLongList() {
         assertEquals(3, handler.getLongList("allowed_roles", "applications", "accept").size());
         assertEquals(405917902865170453L, handler.getLongList("allowed_roles", "applications", "accept").get(0));
@@ -55,6 +60,7 @@ public class TestConfigHandler {
     }
 
     @Test
+    @DisplayName("Test ConfigHandler#getInt")
     public void testGetInt() {
         assertEquals(3306, handler.getInt("database", "port"));
     }

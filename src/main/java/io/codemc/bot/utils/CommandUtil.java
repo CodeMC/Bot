@@ -22,6 +22,7 @@ import ch.qos.logback.classic.Logger;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -49,6 +50,14 @@ public class CommandUtil{
             .findFirst()
             .orElse(null) != null;
     }
+
+    public static MessageEmbed embedError(String... lines){
+        return EmbedReply.empty().error(lines).build();
+    }
+
+    public static MessageEmbed embedSuccess(String... lines){
+        return EmbedReply.empty().success(lines).build();
+    }
     
     public static class EmbedReply<T> {
         
@@ -61,6 +70,10 @@ public class CommandUtil{
         
         public static <T> EmbedReply<T> from(T type){
             return new EmbedReply<>(type);
+        }
+
+        public static EmbedReply<?> empty() {
+            return new EmbedReply<>(null);
         }
         
         public EmbedReply<T> success(String... lines){
@@ -83,19 +96,25 @@ public class CommandUtil{
                 .setColor(0xFF0000);
             return this;
         }
+
+        public MessageEmbed build() {
+            return builder.build();
+        }
         
         public void send(){
+            if(type == null) return;
+
             if(type instanceof SlashCommandEvent commandEvent){
-                commandEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                commandEvent.replyEmbeds(build()).setEphemeral(true).queue();
             }else
             if(type instanceof ModalInteractionEvent modalEvent){
-                modalEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                modalEvent.replyEmbeds(build()).setEphemeral(true).queue();
             }else
             if(type instanceof ButtonInteractionEvent buttonEvent){
-                buttonEvent.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                buttonEvent.replyEmbeds(build()).setEphemeral(true).queue();
             }else
             if(type instanceof InteractionHook hook){
-                hook.editOriginal(EmbedBuilder.ZERO_WIDTH_SPACE).setEmbeds(builder.build()).queue();
+                hook.editOriginal(EmbedBuilder.ZERO_WIDTH_SPACE).setEmbeds(build()).queue();
             }else{
                 LOG.error("Received unknown Type {} for EmbedReply!", type);
             }

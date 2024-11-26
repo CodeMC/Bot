@@ -6,7 +6,10 @@ import java.nio.file.Files;
 
 import org.slf4j.LoggerFactory;
 
+import io.codemc.api.jenkins.JenkinsAPI;
+import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.config.ConfigHandler;
+import io.codemc.bot.utils.APIUtil;
 
 public class MockCodeMCBot extends CodeMCBot {
 
@@ -43,5 +46,21 @@ public class MockCodeMCBot extends CodeMCBot {
 
         validateConfig();
         initializeAPI();
+    }
+
+    public void create(String username, String job) {
+        String link = "https://github.com/" + username + "/" + job;
+        if (JenkinsAPI.getJenkinsUser(username).isEmpty()) {
+            String password = APIUtil.newPassword();
+            APIUtil.createJenkinsJob(null, username, password, job, link);
+            APIUtil.createNexus(null, username, password);
+        } else {
+            JenkinsAPI.createJenkinsJob(username, job, link, JenkinsAPI.isFreestyle(link));
+        }
+    }
+
+    public void delete(String username) {
+        JenkinsAPI.deleteUser(username);
+        NexusAPI.deleteNexus(username);
     }
 }

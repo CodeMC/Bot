@@ -41,6 +41,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CmdCodeMC extends BotCommand {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
 
     public CmdCodeMC(CodeMCBot bot) {
         super(bot);
@@ -80,7 +82,8 @@ public class CmdCodeMC extends BotCommand {
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
     }
 
-    private static class Jenkins extends BotCommand {
+    @VisibleForTesting
+    static class Jenkins extends BotCommand {
 
         public Jenkins(CodeMCBot bot) {
             super(bot);
@@ -90,7 +93,6 @@ public class CmdCodeMC extends BotCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "job", "The Jenkins Job Location to fetch. I.e. \"CodeMC/API\".").setRequired(true)
-
             );
         }
 
@@ -106,15 +108,23 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
+            MessageEmbed embed = createInfoEmbed(job);
+            if (embed == null) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Jenkins Job Info!").send();
+                return;
+            }
+
+            hook.editOriginalEmbeds(embed).queue();
+        }
+
+        @VisibleForTesting
+        MessageEmbed createInfoEmbed(String job) {
             String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url");
             String username = job.split("/")[0];
             String jobName = job.split("/")[1];
 
             JenkinsJob info = JenkinsAPI.getJobInfo(username, jobName);
-            if (info == null) {
-                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Jenkins Job Info!").send();
-                return;
-            }
+            if (info == null) return null;
 
             EmbedBuilder embed = CommandUtil.getEmbed()
                     .setTitle(job, info.getUrl())
@@ -133,12 +143,13 @@ public class CmdCodeMC extends BotCommand {
 
             if (info.getLastStableBuild() != null)
                 embed.addField("Last Stable Build", info.getLastStableBuild().toString(), false);
-
-            hook.editOriginalEmbeds(embed.build()).queue();
+            
+            return embed.build();
         }
     }
 
-    private static class Nexus extends BotCommand {
+    @VisibleForTesting
+    static class Nexus extends BotCommand {
 
         public Nexus(CodeMCBot bot) {
             super(bot);
@@ -164,14 +175,22 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
+            MessageEmbed embed = createInfoEmbed(user);
+            if (embed == null) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
+                return;
+            }
+
+            hook.sendMessageEmbeds(embed).queue();
+        }
+
+        @VisibleForTesting
+        MessageEmbed createInfoEmbed(String user) {
             String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
             String repository = user.toLowerCase();
 
             JsonObject info = NexusAPI.getNexusRepository(repository);
-            if (info == null) {
-                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
-                return;
-            }
+            if (info == null) return null;
 
             String format = ((JsonPrimitive) info.get("format")).getContent();
             String type = ((JsonPrimitive) info.get("type")).getContent();
@@ -183,12 +202,13 @@ public class CmdCodeMC extends BotCommand {
                     .addField("Type", type, true)
                     .setTimestamp(Instant.now())
                     .build();
-
-            hook.sendMessageEmbeds(embed).queue();
+            
+            return embed;
         }
     }
 
-    private static class Remove extends BotCommand {
+    @VisibleForTesting
+    static class Remove extends BotCommand {
 
         public Remove(CodeMCBot bot) {
             super(bot);
@@ -270,7 +290,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Validate extends BotCommand{
+    @VisibleForTesting
+    static class Validate extends BotCommand{
 
         public Validate(CodeMCBot bot) {
             super(bot);
@@ -344,7 +365,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Link extends BotCommand{
+    @VisibleForTesting
+    static class Link extends BotCommand{
 
         public Link(CodeMCBot bot) {
             super(bot);
@@ -400,7 +422,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Unlink extends BotCommand {
+    @VisibleForTesting
+    static class Unlink extends BotCommand {
 
         public Unlink(CodeMCBot bot) {
             super(bot);
@@ -447,7 +470,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class ChangePassword extends BotCommand {
+    @VisibleForTesting
+    static class ChangePassword extends BotCommand {
 
         public ChangePassword(CodeMCBot bot) {
             super(bot);
@@ -509,7 +533,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class CreateUser extends BotCommand{
+    @VisibleForTesting
+    static class CreateUser extends BotCommand{
 
         public CreateUser(CodeMCBot bot) {
             super(bot);
@@ -577,7 +602,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class DeleteUser extends BotCommand{
+    @VisibleForTesting
+    static class DeleteUser extends BotCommand{
 
         public DeleteUser(CodeMCBot bot) {
             super(bot);

@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.InteractionType;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +24,7 @@ public class TestAPIUtil {
     }
 
     @Test
+    @DisplayName("Test APIUtil#newPassword")
     public void testCreatePassword() {
         String p1 = APIUtil.newPassword();
         assertEquals(APIUtil.PASSWORD_SIZE, p1.length());
@@ -33,6 +35,7 @@ public class TestAPIUtil {
     }
 
     @Test
+    @DisplayName("Test APIUtil#isGroup")
     public void testIsGroup() {
         // Tests if the username is a GitHub Organization
         assertTrue(APIUtil.isGroup("CodeMC"));
@@ -47,6 +50,7 @@ public class TestAPIUtil {
     }
 
     @Test
+    @DisplayName("Test APIUtil#createNexus")
     public void testNexus() {
         String user1 = "gmitch215";
         Member u1 = MockJDA.mockMember(user1);
@@ -76,6 +80,7 @@ public class TestAPIUtil {
     }
 
     @Test
+    @DisplayName("Test APIUtil#createJenkinsJob")
     public void testJenkins() {
         String user1 = "gmitch215";
         String j1 = "SocketMC";
@@ -109,6 +114,7 @@ public class TestAPIUtil {
     }
 
     @Test
+    @DisplayName("Test APIUtil#changePassword")
     public void testChangePassword() {
         String username = "CodeMC";
         String job = "API";
