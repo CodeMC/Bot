@@ -22,10 +22,12 @@ import net.dv8tion.jda.api.interactions.Interaction;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.InteractionType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
+import net.dv8tion.jda.api.requests.restaction.interactions.ModalCallbackAction;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
@@ -63,6 +65,7 @@ public class MockJDA {
 
     public static final JDA JDA = JDAObjects.getJDA();
     public static final Guild GUILD = mockGuild();
+    public static Modal CURRENT_MODAL = null;
 
     public static final TextChannel REQUEST_CHANNEL = mockChannel("request_access");
     public static final TextChannel ACCEPTED_CHANNEL = mockChannel("accepted_requests");
@@ -221,6 +224,7 @@ public class MockJDA {
 
     private static void assertEmbeds(long id, List<MessageEmbed> expectedOutputs, boolean ignoreTimestamp) {
         MessageEmbed[] embeds = MockJDA.embeds.get(id);
+        if (embeds == null && expectedOutputs.isEmpty()) return;
         
         assertEquals(expectedOutputs.size(), embeds.length, "Number of embeds");
 
@@ -273,7 +277,9 @@ public class MockJDA {
         SlashCommandEvent event = mockSlashCommandEvent(REQUEST_CHANNEL, command, options);
         listener.onEvent(event);
 
-        assertEmbeds(event.getIdLong(), Arrays.asList(outputs), true);
+        if (outputs != null)
+            assertEmbeds(event.getIdLong(), Arrays.asList(outputs), true);
+
         CURRENT_ID++;
     }
 
@@ -295,6 +301,8 @@ public class MockJDA {
         when(event.getMember()).thenReturn(user);
 
         when(event.getOption(anyString())).thenAnswer(invocation -> {
+            if (options == null) return null;
+
             OptionMapping mapping = mock(OptionMapping.class);
             Object option = options.get(invocation.getArgument(0));
 
@@ -313,6 +321,8 @@ public class MockJDA {
             return mapping;
         });
         when(event.getOption(anyString(), any(), any())).thenAnswer(inv -> {
+            if (options == null) return null;
+
             String key = inv.getArgument(0);
             Object def = inv.getArgument(1);
 
@@ -338,6 +348,11 @@ public class MockJDA {
         when(event.deferReply(any(Boolean.class))).thenAnswer(invocation ->
             mockReply(mockMessage(null, channel))
         );
+
+        when(event.replyModal(any())).thenAnswer(inv -> {
+            CURRENT_MODAL = inv.getArgument(0);
+            return mockModalReply(user, channel);
+        });
 
         return event;
     }
@@ -376,6 +391,18 @@ public class MockJDA {
             when(message.isEphemeral()).thenReturn(true);
             return action;
         });
+
+        return action;
+    }
+
+    private static ModalCallbackAction mockModalReply(Member user, MessageChannel channel) {
+        ModalCallbackAction action = mock(ModalCallbackAction.class);
+
+        doAnswer(inv -> {
+            Consumer<InteractionHook> hookConsumer = inv.getArgument(0);
+            hookConsumer.accept(mockInteractionHook(user, channel, InteractionType.MODAL_SUBMIT));
+            return null;
+        }).when(action).queue(any());
 
         return action;
     }
