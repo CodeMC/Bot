@@ -19,6 +19,7 @@
 package io.codemc.bot.utils;
 
 import io.codemc.bot.CodeMCBot;
+import io.codemc.api.database.DatabaseAPI;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
