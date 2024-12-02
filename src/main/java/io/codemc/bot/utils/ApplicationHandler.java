@@ -37,8 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ApplicationHandler{
-    
-    private static final Pattern MASKED_LINK_PATTERN = Pattern.compile("\\[(.+)]\\((https?://.+\\.\\w{2,})\\)");
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationHandler.class);
     
     public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
@@ -99,28 +98,26 @@ public class ApplicationHandler{
                   - Find and validate User and Repository link...
                 """, userId
             ).queue();
-            
-            String username = null;
-            String userLink = null;
-            String repoName = null;
-            String repoLink = null;
-            for(MessageEmbed.Field field : embed.getFields()){
-                if(field.getName() == null || field.getValue() == null)
-                    continue;
-                
-                Matcher urlMatcher = MASKED_LINK_PATTERN.matcher(field.getValue());
-                if(!urlMatcher.matches())
-                    continue;
-                
-                if(field.getName().equalsIgnoreCase("user/organisation:")){
-                    username = urlMatcher.group(1);
-                    userLink = urlMatcher.group(2);
-                }else
-                if(field.getName().equalsIgnoreCase("repository:")){
-                    repoName = urlMatcher.group(1);
-                    repoLink = urlMatcher.group(2);
-                }
+
+            if (embed.getFields().size() < 2) {
+                CommandUtil.EmbedReply.from(hook).error("Embed does not have all valid Fields.").send();
+                return;
             }
+
+            MessageEmbed.Field userField = embed.getFields().get(0);
+            MessageEmbed.Field repoField = embed.getFields().get(1);
+            if(userField == null || repoField == null){
+                CommandUtil.EmbedReply.from(hook).error("Embed does not have all valid Fields.").send();
+                return;
+            }
+
+            String user = userField.getValue();
+            String repo = repoField.getValue();
+            
+            String username = user.substring(1, user.indexOf("]"));;
+            String userLink = user.substring(user.indexOf("(") + 1, user.length() - 1);
+            String repoName = repo.substring(1, repo.indexOf("]"));
+            String repoLink = repo.substring(repo.indexOf("(") + 1, repo.length() - 1);
             
             if(username == null || userLink == null || repoName == null || repoLink == null){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have any valid Fields.").send();
@@ -290,7 +287,7 @@ public class ApplicationHandler{
                           - Found Author Role!
                           - Applied Author Role to User!
                         
-                        **Successfully accepted Join Request of user %s!
+                        **Successfully accepted Join Request of user %s!**
                         """, userId, member.getUser().getEffectiveName()
                     ).queue(), 
                         new ErrorHandler()
