@@ -20,7 +20,7 @@ package io.codemc.bot.listeners;
 
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.commands.CmdApplication;
+import io.codemc.bot.utils.ApplicationHandler;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -253,7 +253,7 @@ public class ModalListener extends ListenerAdapter{
                 if(reason == null || reason.isEmpty())
                     reason = "*No reason provided*";
                 
-                CmdApplication.handle(this.bot, hook, guild, messageId, reason, false);
+                ApplicationHandler.handle(this.bot, hook, guild, messageId, reason, false);
             });
             
             default -> CommandUtil.EmbedReply.from(event)
