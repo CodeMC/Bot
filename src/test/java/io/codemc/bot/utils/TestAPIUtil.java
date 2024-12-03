@@ -52,7 +52,7 @@ public class TestAPIUtil {
     @Test
     @DisplayName("Test APIUtil#createNexus")
     public void testNexus() {
-        String user1 = "gmitch215";
+        String user1 = "TestNexus1";
         Member u1 = MockJDA.mockMember(user1);
         String p1 = APIUtil.newPassword();
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
@@ -65,7 +65,7 @@ public class TestAPIUtil {
         assertNull(NexusAPI.getNexusUser(user1));
         assertNull(NexusAPI.getNexusRepository(user1));
 
-        String user2 = "CodeMC";
+        String user2 = "TestNexus2";
         Member u2 = MockJDA.mockMember(user2);
         String p2 = APIUtil.newPassword();
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
@@ -82,8 +82,8 @@ public class TestAPIUtil {
     @Test
     @DisplayName("Test APIUtil#createJenkinsJob")
     public void testJenkins() {
-        String user1 = "gmitch215";
-        String j1 = "SocketMC";
+        String user1 = "TestJenkins1";
+        String j1 = "Job";
         Member u1 = MockJDA.mockMember(user1);
         String p1 = APIUtil.newPassword();
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
@@ -97,8 +97,8 @@ public class TestAPIUtil {
         assertTrue(JenkinsAPI.deleteUser(user1));
         assertTrue(JenkinsAPI.getJenkinsUser(user1).isEmpty());
 
-        String user2 = "CodeMC";
-        String j2 = "Bot";
+        String user2 = "TestJenkins2";
+        String j2 = "Job";
         Member u2 = MockJDA.mockMember(user2);
         String p2 = APIUtil.newPassword();
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
@@ -116,8 +116,8 @@ public class TestAPIUtil {
     @Test
     @DisplayName("Test APIUtil#changePassword")
     public void testChangePassword() {
-        String username = "CodeMC";
-        String job = "API";
+        String username = "TestChangePassword";
+        String job = "Job";
         Member user = MockJDA.mockMember(username);
         InteractionHook hook = MockJDA.mockInteractionHook(user, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
