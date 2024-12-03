@@ -20,39 +20,19 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-import io.codemc.api.database.DatabaseAPI;
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.utils.APIUtil;
+import io.codemc.bot.utils.ApplicationHandler;
 import io.codemc.bot.utils.CommandUtil;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.MessageEmbed.Footer;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.requests.ErrorResponse;
-import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
-import net.dv8tion.jda.api.utils.messages.MessageCreateData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class CmdApplication extends BotCommand{
-
-    public static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^https://github\\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-_.]+?)(?:\\.git)?(?:/.*)?$");
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CmdApplication.class);
 
     public CmdApplication(CodeMCBot bot){
         super(bot);
@@ -73,168 +53,6 @@ public class CmdApplication extends BotCommand{
     
     @Override
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
-    
-    public static void handle(CodeMCBot bot, InteractionHook hook, Guild guild, long messageId, String str, boolean accepted){
-        TextChannel requestChannel = guild.getTextChannelById(bot.getConfigHandler().getLong("channels", "request_access"));
-        if(requestChannel == null){
-            CommandUtil.EmbedReply.from(hook).error("Unable to retrieve `request-access` channel.").send();
-            return;
-        }
-        
-        requestChannel.retrieveMessageById(messageId).queue(message -> {
-            List<MessageEmbed> embeds = message.getEmbeds();
-            if(embeds.isEmpty()){
-                CommandUtil.EmbedReply.from(hook).error("Provided message does not have any embeds.").send();
-                return;
-            }
-            
-            MessageEmbed embed = embeds.get(0);
-            Footer footer = embed.getFooter();
-            if(footer == null || embed.getFields().isEmpty()){
-                CommandUtil.EmbedReply.from(hook).error("Embed does not have a footer or any Embed Fields.").send();
-                return;
-            }
-
-            String footerText = footer.getText();
-            if(footerText == null || footerText.isEmpty()){
-                CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
-                return;
-            }
-
-            String userId = footerText.trim();
-            String userLink = null;
-            String repoLink = null;
-            for(MessageEmbed.Field field : embed.getFields()){
-                String name = field.getName();
-                if(name == null || field.getValue() == null)
-                    continue;
-                
-                if(name.equalsIgnoreCase("user/organisation:")){
-                    userLink = field.getValue();
-                }else
-                if(name.equalsIgnoreCase("repository:")){
-                    String link = field.getValue();
-                    if (link == null || link.isEmpty()) {
-                        CommandUtil.EmbedReply.from(hook).error("Repository field is empty!").send();
-                        return;
-                    }
-
-                    String url = link.substring(link.indexOf("(") + 1, link.indexOf(")"));
-
-                    repoLink = url.isEmpty() ? link : url;
-                }
-            }
-            
-            if(userLink == null || repoLink == null){
-                CommandUtil.EmbedReply.from(hook).error("Embed does not have any valid Fields.").send();
-                return;
-            }
-            
-            TextChannel channel = guild.getTextChannelById(accepted
-                ? bot.getConfigHandler().getLong("channels", "accepted_requests")
-                : bot.getConfigHandler().getLong("channels", "rejected_requests")
-            );
-            if(channel == null){
-                CommandUtil.EmbedReply.from(hook)
-                    .error("Unable to retrieve `" + (accepted ? "accepted" : "rejected") + "-requests` channel.")
-                    .send();
-                return;
-            }
-
-            Matcher matcher = GITHUB_URL_PATTERN.matcher(repoLink);
-            if (!matcher.matches()) {
-                CommandUtil.EmbedReply.from(hook)
-                        .error("The user/organisation or repository name is invalid!")
-                        .send();
-                return;
-            }
-
-            String username = matcher.group(1);
-            String project = matcher.group(2);
-            String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/" + project + "/";
-            Member member = guild.getMemberById(userId);
-
-            if (accepted) {
-                String password = APIUtil.newPassword();
-                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, project, repoLink);
-                boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
-                if (!nexusSuccess || !jenkinsSuccess) return;
-
-                if (member == null)
-                    LOGGER.warn("Member with ID '{}' not found!", userId);
-                else {
-                    if (DatabaseAPI.getUser(username) == null)
-                        DatabaseAPI.addUser(username, member.getIdLong());
-                }
-            }
-
-            channel.sendMessage(getMessage(bot, userId, userLink, repoLink, str == null ? jenkinsUrl : str, hook.getInteraction().getUser(), accepted)).queue(m -> {
-                ThreadChannel thread = message.getStartedThread();
-                if(thread != null && !thread.isArchived()){
-                    thread.getManager().setArchived(true)
-                        .reason("Archiving Thread of deleted Request message.")
-                        .queue();
-                }
-                
-                message.delete().queue();
-                
-                if(!accepted){
-                    CommandUtil.EmbedReply.from(hook)
-                        .success("Denied Application of " + (member == null ? "Unknown" : member.getUser().getEffectiveName()) + "!")
-                        .send();
-                    return;
-                }
-                
-                Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
-                if(authorRole == null){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Unable to retrieve Author Role!")
-                        .send();
-                    return;
-                }
-                
-                if(member == null){
-                    CommandUtil.EmbedReply.from(hook)
-                        .error("Unable to apply Role. Member not found!")
-                        .send();
-                    return;
-                }
-                
-                guild.addRoleToMember(member, authorRole)
-                    .reason("[Access Request] Application accepted.")
-                    .queue(
-                        v -> CommandUtil.EmbedReply.from(hook)
-                            .success("Accepted application of " + member.getUser().getEffectiveName() + "!")
-                            .send(),
-                        new ErrorHandler()
-                            .handle(
-                                ErrorResponse.MISSING_PERMISSIONS,
-                                e -> CommandUtil.EmbedReply.from(hook)
-                                    .appendWarning("I lack the `Manage Roles` permission to apply the role.")
-                                    .send()
-                            )
-                    );
-            });
-        });
-    }
-    
-    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
-        String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied"))); 
-        
-        MessageEmbed embed = new EmbedBuilder()
-            .setColor(accepted ? 0x00FF00 : 0xFF0000)
-            .setDescription(msg)
-            .addField("User/Organisation:", userLink, true)
-            .addField("Repository:", repoLink, true)
-            .addField("Reviewer:", reviewer.getAsMention(), true)
-            .addField(accepted ? "New Project:" : "Reason:", str, false)
-            .build();
-        
-        return new MessageCreateBuilder()
-            .addContent("<@" + userId + ">")
-            .setEmbeds(embed)
-            .build();
-    }
     
     private static class Accept extends BotCommand{
 
@@ -274,7 +92,7 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
                 
-                handle(bot, hook, guild, messageId, null, true);
+                ApplicationHandler.handle(bot, hook, guild, messageId, null, true);
             } catch (NumberFormatException e) {
                 CommandUtil.EmbedReply.from(hook).error("Invalid message ID!").send();
             }
@@ -322,7 +140,7 @@ public class CmdApplication extends BotCommand{
                     return;
                 }
                 
-                handle(bot, hook, guild, messageId, reason, false);
+                ApplicationHandler.handle(bot, hook, guild, messageId, reason, false);
             } catch (NumberFormatException e) {
                 CommandUtil.EmbedReply.from(hook).error("Invalid message ID!").send();
             }
