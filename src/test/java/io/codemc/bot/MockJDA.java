@@ -32,6 +32,7 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -185,6 +186,13 @@ public class MockJDA {
             member.getRoles().add(role);
             return null;
         });
+        when(guild.removeRoleFromMember(any(UserSnowflake.class), any(Role.class))).thenAnswer(inv -> {
+            Member member = inv.getArgument(0);
+            Role role = inv.getArgument(1);
+
+            member.getRoles().remove(role);
+            return null;
+        });
         when(guild.getRoleById(any(Long.class))).thenAnswer(inv -> {
             long id = inv.getArgument(0);
             return ROLES.stream().filter(role -> role.getIdLong() == id).findFirst().orElse(null);
@@ -200,10 +208,15 @@ public class MockJDA {
     public static Member mockMember(String username) {
         Member member = JDAObjects.getMember(username, "0000");
 
+        long id = new SecureRandom().nextLong();
         when(member.getGuild()).thenReturn(GUILD);
+        when(member.getIdLong()).thenReturn(id);
 
         List<Role> roles = new ArrayList<>();
         when(member.getRoles()).thenReturn(roles);
+
+        when(member.getUser().getEffectiveName()).thenReturn(username);
+        when(member.getUser().getIdLong()).thenReturn(id);
 
         return member;
     }
