@@ -390,6 +390,11 @@ public class CmdCodeMC extends BotCommand {
             String username = event.getOption("username", null, OptionMapping::getAsString);
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
 
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Jenkins User provided!").send();
+                return;
+            }
+
             if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
@@ -458,6 +463,14 @@ public class CmdCodeMC extends BotCommand {
                     .filter(user -> userTarget == null || user.equals(userTarget))
                     .findFirst()
                     .orElse(null);
+            
+            if (username == null) {
+                if (userTarget == null)
+                    CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
+                else
+                    CommandUtil.EmbedReply.from(hook).error("The user is not linked to the specified Jenkins/Nexus account!").send();
+                return;
+            }
 
             if (DatabaseAPI.getUser(username) == null) {
                 CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();

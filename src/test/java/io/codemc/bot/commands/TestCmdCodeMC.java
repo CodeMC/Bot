@@ -13,16 +13,19 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
 import io.codemc.bot.commands.CmdCodeMC.Jenkins;
+import io.codemc.bot.commands.CmdCodeMC.Link;
 import io.codemc.bot.commands.CmdCodeMC.Nexus;
 import io.codemc.bot.commands.CmdCodeMC.Remove;
+import io.codemc.bot.commands.CmdCodeMC.Unlink;
 import io.codemc.bot.commands.CmdCodeMC.Validate;
-import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
+import net.dv8tion.jda.api.entities.Member;
 
 public class TestCmdCodeMC {
     
@@ -165,9 +168,74 @@ public class TestCmdCodeMC {
         assertNotNull(NexusAPI.getNexusUser("TestValidate_31"));
         assertNotNull(NexusAPI.getNexusUser("TestValidate_32"));
 
-        MockCodeMCBot.INSTANCE.delete( "TestValidate_30");
+        MockCodeMCBot.INSTANCE.delete("TestValidate_30");
         MockCodeMCBot.INSTANCE.delete("TestValidate_31");
         MockCodeMCBot.INSTANCE.delete("TestValidate_32");
+    }
+
+    @Test
+    @DisplayName("Test /codemc link")
+    public void testLink() {
+        Link link = (Link) command.getChildren()[4];
+
+        assertEquals("link", link.getName());
+        assertEquals(2, link.getOptions().size());
+        assertFalse(link.allowedRoles.isEmpty());
+
+        TestCommandListener listener = new TestCommandListener(link);
+
+        Member m1 = MockJDA.mockMember("TestLink");
+        MockJDA.GUILD.addRoleToMember(m1, MockJDA.AUTHOR);
+
+        MockCodeMCBot.INSTANCE.create("TestLink", "Job");
+        DatabaseAPI.removeUser("TestLink");
+
+        assertNull(DatabaseAPI.getUser("TestLink"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedSuccess("Linked Discord User TestLink to Jenkins User TestLink!"));
+        assertNotNull(DatabaseAPI.getUser("TestLink"));
+        assertEquals(m1.getIdLong(), DatabaseAPI.getUser("TestLink").getDiscord());
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedSuccess("Linked Discord User TestLink to Jenkins User TestLink!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Jenkins User provided!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "Inexistent", "discord", m1), CommandUtil.embedError("The user does not have a Jenkins account!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink"), CommandUtil.embedError("Invalid Discord User provided!"));
+
+        MockJDA.GUILD.removeRoleFromMember(m1, MockJDA.AUTHOR);
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedError("The user is not an Author!"));
+    
+        MockCodeMCBot.INSTANCE.delete("TestLink");
+        DatabaseAPI.removeUser("TestLink");
+    }
+
+    @Test
+    @DisplayName("Test /codemc unlink")
+    public void testUnlink() {
+        Unlink unlink = (Unlink) command.getChildren()[5];
+
+        assertEquals("unlink", unlink.getName());
+        assertEquals(2, unlink.getOptions().size());
+        assertFalse(unlink.allowedRoles.isEmpty());
+
+        TestCommandListener listener = new TestCommandListener(unlink);
+
+        Member m1 = MockJDA.mockMember("TestUnlink");
+        MockJDA.GUILD.addRoleToMember(m1, MockJDA.AUTHOR);
+
+        DatabaseAPI.removeUser("TestUnlink");
+        MockCodeMCBot.INSTANCE.delete("TestUnlink");
+        MockCodeMCBot.INSTANCE.create("TestUnlink", "Job");
+        DatabaseAPI.addUser("TestUnlink", m1.getIdLong());
+
+        assertNotNull(DatabaseAPI.getUser("TestUnlink"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("discord", m1), CommandUtil.embedSuccess("Unlinked Discord User TestUnlink from their Jenkins/Nexus account!"));
+        assertNull(DatabaseAPI.getUser("TestUnlink"));
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Discord User provided!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("discord", m1), CommandUtil.embedError("The user is not linked to any Jenkins/Nexus account!"));
+    
+        MockCodeMCBot.INSTANCE.delete("TestUnlink");
+        DatabaseAPI.removeUser("TestUnlink");
     }
 
 }
