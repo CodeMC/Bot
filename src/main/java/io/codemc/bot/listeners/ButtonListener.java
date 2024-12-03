@@ -19,7 +19,7 @@
 package io.codemc.bot.listeners;
 
 import io.codemc.bot.CodeMCBot;
-import io.codemc.bot.commands.CmdApplication;
+import io.codemc.bot.utils.ApplicationHandler;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -95,7 +95,7 @@ public class ButtonListener extends ListenerAdapter{
             }
             
             event.deferReply(true).queue(
-                hook -> CmdApplication.handle(bot, hook, guild, event.getMessageIdLong(), null, true)
+                hook -> ApplicationHandler.handle(bot, hook, guild, event.getMessageIdLong(), null, true)
             );
         }else{
             if(lacksRole(roleIds, denyApplicationRoles)){
