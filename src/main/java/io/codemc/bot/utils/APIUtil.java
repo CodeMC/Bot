@@ -43,7 +43,7 @@ public class APIUtil {
         return true;
     }
 
-    public static boolean createJenkinsJob(InteractionHook hook, String username, String password, String project, String repoLink) {
+    public static boolean createJenkinsJob(InteractionHook hook, String username, String password, String project, String repoLink, boolean trigger) {
         if (!JenkinsAPI.getJenkinsUser(username).isEmpty()) {
             if (hook != null)
                 CommandUtil.EmbedReply.from(hook)
@@ -77,15 +77,17 @@ public class APIUtil {
             return false;
         }
 
-        boolean triggerBuild = JenkinsAPI.triggerBuild(username, project);
-        if (!triggerBuild) {
-            if (hook != null)
-                CommandUtil.EmbedReply.from(hook)
-                        .error("Failed to trigger Jenkins Build for " + username + "!")
-                        .send();
+        if (trigger) {
+            boolean triggerBuild = JenkinsAPI.triggerBuild(username, project);
+            if (!triggerBuild) {
+                if (hook != null)
+                    CommandUtil.EmbedReply.from(hook)
+                            .error("Failed to trigger Jenkins Build for " + username + "!")
+                            .send();
 
-            LOGGER.error("Failed to trigger Jenkins Build for {}!", username);
-            return false;
+                LOGGER.error("Failed to trigger Jenkins Build for {}!", username);
+                return false;
+            }
         }
 
         LOGGER.info("Successfully created Jenkins Job '{}' for {}!", project, username);

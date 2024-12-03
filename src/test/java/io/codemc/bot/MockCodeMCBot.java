@@ -52,7 +52,7 @@ public class MockCodeMCBot extends CodeMCBot {
         String link = "https://github.com/" + username + "/" + job;
         if (JenkinsAPI.getJenkinsUser(username).isEmpty()) {
             String password = APIUtil.newPassword();
-            APIUtil.createJenkinsJob(null, username, password, job, link);
+            APIUtil.createJenkinsJob(null, username, password, job, link, false);
             APIUtil.createNexus(null, username, password);
         } else {
             JenkinsAPI.createJenkinsJob(username, job, link, JenkinsAPI.isFreestyle(link));

@@ -166,7 +166,7 @@ public class ApplicationHandler{
             
             if(accepted){
                 String password = APIUtil.newPassword();
-                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, repoName, repoLink);
+                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, repoName, repoLink, true);
                 boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
                 
                 if(!jenkinsSuccess || ! nexusSuccess)

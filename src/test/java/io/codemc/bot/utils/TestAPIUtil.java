@@ -88,7 +88,7 @@ public class TestAPIUtil {
         String p1 = APIUtil.newPassword();
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
-        assertTrue(APIUtil.createJenkinsJob(h1, user1, p1, j1, "https://github.com/gmitch215/SocketMC"));
+        assertTrue(APIUtil.createJenkinsJob(h1, user1, p1, j1, "https://github.com/gmitch215/SocketMC", false));
         assertFalse(JenkinsAPI.getJenkinsUser(user1).isEmpty());
         assertNotNull(JenkinsAPI.getJobInfo(user1, j1));
 
@@ -103,7 +103,7 @@ public class TestAPIUtil {
         String p2 = APIUtil.newPassword();
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
-        assertTrue(APIUtil.createJenkinsJob(h2, user2, p2, j2, "https://github.com/CodeMC/Bot"));
+        assertTrue(APIUtil.createJenkinsJob(h2, user2, p2, j2, "https://github.com/CodeMC/Bot", false));
         assertFalse(JenkinsAPI.getJenkinsUser(user2).isEmpty());
         assertNotNull(JenkinsAPI.getJobInfo(user2, j2));
 
@@ -123,7 +123,7 @@ public class TestAPIUtil {
 
         String oldPassword = APIUtil.newPassword();
         assertTrue(APIUtil.createNexus(hook, username, oldPassword));
-        assertTrue(APIUtil.createJenkinsJob(hook, username, oldPassword, job, "https://github.com/CodeMC/API"));
+        assertTrue(APIUtil.createJenkinsJob(hook, username, oldPassword, job, "https://github.com/CodeMC/API", false));
 
         String newPassword = APIUtil.newPassword();
         assertTrue(APIUtil.changePassword(hook, username, newPassword));

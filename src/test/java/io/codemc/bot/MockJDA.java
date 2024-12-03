@@ -255,7 +255,7 @@ public class MockJDA {
         if (expectedOutput.getThumbnail() != null)
             Assertions.assertEquals(expectedOutput.getThumbnail().getUrl(), Objects.requireNonNull(embed.getThumbnail()).getUrl());
         
-            int i = 0;
+        int i = 0;
         for (MessageEmbed.Field field : embed.getFields()) {
             try {
                 Assertions.assertEquals(expectedOutput.getFields().get(i).getName(), field.getName());
