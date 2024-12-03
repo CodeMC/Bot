@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.interactions.InteractionType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.requests.restaction.AuditableRestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
@@ -95,6 +96,11 @@ public class MockJDA {
 
         when(hook.editOriginal(anyString())).thenAnswer(inv -> {
             String content = inv.getArgument(0);
+            messages.put(hook.getIdLong(), content);
+            return mockReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
+        });
+        when(hook.editOriginalFormat(anyString(), any())).thenAnswer(inv -> {
+            String content = String.format(inv.getArgument(0), (Object[]) inv.getArguments()[1]);
             messages.put(hook.getIdLong(), content);
             return mockReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
         });
@@ -184,14 +190,14 @@ public class MockJDA {
             Role role = inv.getArgument(1);
 
             member.getRoles().add(role);
-            return null;
+            return mockAuditLog();
         });
         when(guild.removeRoleFromMember(any(UserSnowflake.class), any(Role.class))).thenAnswer(inv -> {
             Member member = inv.getArgument(0);
             Role role = inv.getArgument(1);
 
             member.getRoles().remove(role);
-            return null;
+            return mockAuditLog();
         });
         when(guild.getRoleById(any(Long.class))).thenAnswer(inv -> {
             long id = inv.getArgument(0);
@@ -286,8 +292,11 @@ public class MockJDA {
 
     public static void assertSlashCommandEvent(TestCommandListener listener, Map<String, Object> options, MessageEmbed... outputs) {
         BotCommand command = listener.getCommand();
-
         SlashCommandEvent event = mockSlashCommandEvent(REQUEST_CHANNEL, command, options);
+        assertSlashCommandEvent(event, listener, outputs);
+    }
+
+    public static void assertSlashCommandEvent(SlashCommandEvent event, TestCommandListener listener, MessageEmbed... outputs) {
         listener.onEvent(event);
 
         if (outputs != null)
@@ -448,6 +457,16 @@ public class MockJDA {
                 embeds.put(message.getIdLong(), new MessageEmbed[] { (MessageEmbed) obj });
             return action;
         });
+
+        return action;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static AuditableRestAction<Void> mockAuditLog() {
+        AuditableRestAction<Void> action = mock(AuditableRestAction.class);
+        doAnswer(inv -> null).when(action).queue(any());
+
+        when(action.reason(any())).thenReturn(action);
 
         return action;
     }

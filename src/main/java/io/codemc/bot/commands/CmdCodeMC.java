@@ -532,7 +532,7 @@ public class CmdCodeMC extends BotCommand {
             }
 
             if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
-                CommandUtil.EmbedReply.from(hook).error("This user does not have a Jenkins account!").send();
+                CommandUtil.EmbedReply.from(hook).error("You do not have a Jenkins account!").send();
                 return;
             }
 
@@ -570,6 +570,11 @@ public class CmdCodeMC extends BotCommand {
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String username = event.getOption("username", null, OptionMapping::getAsString);
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
+
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Username provided!").send();
+                return;
+            }
 
             if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
                 CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
@@ -638,8 +643,13 @@ public class CmdCodeMC extends BotCommand {
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String username = event.getOption("username", null, OptionMapping::getAsString);
 
-            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
-                CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Username provided!").send();
+                return;
+            }
+
+            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+                CommandUtil.EmbedReply.from(hook).error("The user does not exist!").send();
                 return;
             }
 

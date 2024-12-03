@@ -13,11 +13,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.jagrosh.jdautilities.command.SlashCommandEvent;
+
 import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
+import io.codemc.bot.commands.CmdCodeMC.ChangePassword;
+import io.codemc.bot.commands.CmdCodeMC.CreateUser;
+import io.codemc.bot.commands.CmdCodeMC.DeleteUser;
 import io.codemc.bot.commands.CmdCodeMC.Jenkins;
 import io.codemc.bot.commands.CmdCodeMC.Link;
 import io.codemc.bot.commands.CmdCodeMC.Nexus;
@@ -236,6 +241,89 @@ public class TestCmdCodeMC {
     
         MockCodeMCBot.INSTANCE.delete("TestUnlink");
         DatabaseAPI.removeUser("TestUnlink");
+    }
+
+    @Test
+    @DisplayName("Test /codemc change-password")
+    public void testChangePassword() {
+        ChangePassword changePassword = (ChangePassword) command.getChildren()[6];
+
+        assertEquals("change-password", changePassword.getName());
+        assertEquals(1, changePassword.getOptions().size());
+
+        SlashCommandEvent event = MockJDA.mockSlashCommandEvent(MockJDA.REQUEST_CHANNEL, changePassword, Map.of());
+        TestCommandListener listener = new TestCommandListener(changePassword);
+
+        JenkinsAPI.createJenkinsUser("User", "1234");
+        NexusAPI.createNexus("User", "1234");
+        DatabaseAPI.addUser("User", event.getMember().getIdLong());
+
+        MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedSuccess("Successfully changed your password!"));
+
+        JenkinsAPI.deleteUser("User");
+        NexusAPI.deleteNexus("User");
+        DatabaseAPI.removeUser("User");
+    }
+
+    @Test
+    @DisplayName("Test /codemc createuser")
+    public void testCreateUser() {
+        CreateUser createUser = (CreateUser) command.getChildren()[7];
+
+        assertEquals("createuser", createUser.getName());
+        assertEquals(2, createUser.getOptions().size());
+        assertFalse(createUser.allowedRoles.isEmpty());
+
+        TestCommandListener listener = new TestCommandListener(createUser);
+
+        Member m1 = MockJDA.mockMember("TestCreateUser");
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestCreateUser", "discord", m1), CommandUtil.embedSuccess("Successfully created user TestCreateUser and linked it to " + m1.getUser().getEffectiveName() + "!"));
+
+        Member m2 = MockJDA.mockMember("TestCreateUser2");
+        MockCodeMCBot.INSTANCE.create("TestCreateUser2", "Job");
+        DatabaseAPI.addUser("TestCreateUser2", m2.getIdLong());
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestCreateUser2", "discord", m2), CommandUtil.embedError("A user with that username already exists."));
+        MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Username provided!"));
+        
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestCreateUser3"), CommandUtil.embedError("Invalid Discord User provided!"));
+
+        MockCodeMCBot.INSTANCE.delete("TestCreateUser");
+        MockCodeMCBot.INSTANCE.delete("TestCreateUser2");
+        DatabaseAPI.removeUser("TestCreateUser");
+        DatabaseAPI.removeUser("TestCreateUser2");
+    }
+
+    @Test
+    @DisplayName("Test /codemc deluser")
+    public void testDelUser() {
+        DeleteUser delUser = (DeleteUser) command.getChildren()[8];
+
+        assertEquals("deluser", delUser.getName());
+        assertEquals(1, delUser.getOptions().size());
+        assertFalse(delUser.allowedRoles.isEmpty());
+
+        TestCommandListener listener = new TestCommandListener(delUser);
+
+        Member m1 = MockJDA.mockMember("TestDelUser");
+
+        MockCodeMCBot.INSTANCE.create("TestDelUser", "Job");
+        DatabaseAPI.addUser("TestDelUser", m1.getIdLong());
+
+        assertFalse(JenkinsAPI.getJenkinsUser("TestDelUser").isEmpty());
+        assertNotNull(NexusAPI.getNexusUser("TestDelUser"));
+        assertNotNull(DatabaseAPI.getUser("TestDelUser"));
+        assertEquals(m1.getIdLong(), DatabaseAPI.getUser("TestDelUser").getDiscord());
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestDelUser"), CommandUtil.embedSuccess("Successfully deleted user TestDelUser!"));
+
+        assertTrue(JenkinsAPI.getJenkinsUser("TestDelUser").isEmpty());
+        assertNull(NexusAPI.getNexusUser("TestDelUser"));
+        assertNull(DatabaseAPI.getUser("TestDelUser"));
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Username provided!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "Inexistent"), CommandUtil.embedError("The user does not exist!"));
     }
 
 }
