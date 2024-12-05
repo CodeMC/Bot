@@ -1,5 +1,12 @@
 package io.codemc.bot.utils;
 
+import static io.codemc.bot.MockJDA.ACCEPTED_CHANNEL;
+import static io.codemc.bot.MockJDA.AUTHOR;
+import static io.codemc.bot.MockJDA.GUILD;
+import static io.codemc.bot.MockJDA.REJECTED_CHANNEL;
+import static io.codemc.bot.MockJDA.REQUEST_CHANNEL;
+import static io.codemc.bot.MockJDA.SELF;
+import static io.codemc.bot.MockJDA.assertEmbeds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +28,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.InteractionType;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
 public class TestApplicationHandler {
     
@@ -29,21 +37,29 @@ public class TestApplicationHandler {
     public void testHandleAccepted() {
         String username = "TestApplicationHandlerAccepted";
         Member member = MockJDA.mockMember(username);
-        InteractionHook hook = MockJDA.mockInteractionHook(member, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+        InteractionHook hook = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
         
         MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
-        Message message = MockJDA.mockMessage("", List.of(embed), MockJDA.REQUEST_CHANNEL);
+        Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
 
-        assertFalse(CommandUtil.hasRole(member, List.of(MockJDA.AUTHOR.getIdLong())));
+        assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNull(NexusAPI.getNexusUser(username));
         assertNull(DatabaseAPI.getUser(username));
 
         ApplicationHandler.handle(
-            MockCodeMCBot.INSTANCE, hook, MockJDA.GUILD, message.getIdLong(), null, true
+            MockCodeMCBot.INSTANCE, hook, GUILD, message.getIdLong(), null, true
         );
 
-        assertTrue(CommandUtil.hasRole(member, List.of(MockJDA.AUTHOR.getIdLong())));
+        String jenkinsUrl = MockCodeMCBot.INSTANCE.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/Job/";
+        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), "userLink", "repoLink", jenkinsUrl, SELF.getUser(), true);
+        String content = MockJDA.getLatestMessage(ACCEPTED_CHANNEL);
+        List<MessageEmbed> embeds = MockJDA.getLatestEmbeds(ACCEPTED_CHANNEL);
+
+        assertEquals(expected.getContent(), content);
+        assertEmbeds(expected.getEmbeds(), embeds, true);
+
+        assertTrue(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNotNull(NexusAPI.getNexusUser(username));
         assertNotNull(DatabaseAPI.getUser(username));
@@ -59,21 +75,28 @@ public class TestApplicationHandler {
     public void testHandleRejected() {
         String username = "TestApplicationHandlerRejected";
         Member member = MockJDA.mockMember(username);
-        InteractionHook hook = MockJDA.mockInteractionHook(member, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+        InteractionHook hook = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
         
         MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
-        Message message = MockJDA.mockMessage("", List.of(embed), MockJDA.REQUEST_CHANNEL);
+        Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
 
-        assertFalse(CommandUtil.hasRole(member, List.of(MockJDA.AUTHOR.getIdLong())));
+        assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNull(NexusAPI.getNexusUser(username));
         assertNull(DatabaseAPI.getUser(username));
 
         ApplicationHandler.handle(
-            MockCodeMCBot.INSTANCE, hook, MockJDA.GUILD, message.getIdLong(), "Denied", false
+            MockCodeMCBot.INSTANCE, hook, GUILD, message.getIdLong(), "Denied", false
         );
 
-        assertFalse(CommandUtil.hasRole(member, List.of(MockJDA.AUTHOR.getIdLong())));
+        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), "userLink", "repoLink", "Denied", SELF.getUser(), false);
+        String content = MockJDA.getLatestMessage(REJECTED_CHANNEL);
+        List<MessageEmbed> embeds = MockJDA.getLatestEmbeds(REJECTED_CHANNEL);
+
+        assertEquals(expected.getContent(), content);
+        assertEmbeds(expected.getEmbeds(), embeds, true);
+
+        assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNull(NexusAPI.getNexusUser(username));
         assertNull(DatabaseAPI.getUser(username));

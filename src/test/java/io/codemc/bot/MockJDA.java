@@ -66,6 +66,8 @@ public class MockJDA {
     private static final Map<Long, String> messages = new HashMap<>();
     private static final Map<Long, MessageEmbed[]> embeds = new HashMap<>();
     private static final Map<Long, Member> members = new HashMap<>();
+    private static final Map<Long, String> latestMessages = new HashMap<>();
+    private static final Map<Long, MessageEmbed[]> latestEmbeds = new HashMap<>();
 
     private static long CURRENT_ID = 0;
 
@@ -91,6 +93,14 @@ public class MockJDA {
 
     public static List<MessageEmbed> getEmbeds(long id) {
         return Arrays.asList(embeds.get(id));
+    }
+
+    public static String getLatestMessage(MessageChannel channel) {
+        return latestMessages.get(channel.getIdLong());
+    }
+
+    public static List<MessageEmbed> getLatestEmbeds(MessageChannel channel) {
+        return Arrays.asList(latestEmbeds.get(channel.getIdLong()));
     }
 
     public static InteractionHook mockInteractionHook(Member user, MessageChannel channel, InteractionType type) {
@@ -152,6 +162,8 @@ public class MockJDA {
         Interaction interaction = mock(Interaction.class);
         when(interaction.getJDA()).thenReturn(JDA);
         when(interaction.getChannel()).thenReturn(channel);
+        when(interaction.getMessageChannel()).thenReturn(channel);
+
         when(interaction.getMember()).thenReturn(user);
         when(interaction.getUser()).thenAnswer(inv -> user.getUser());
         when(interaction.getGuild()).thenReturn(GUILD);
@@ -215,6 +227,8 @@ public class MockJDA {
     public static Message mockMessage(String content, MessageChannel channel) {
         Message message = JDAObjects.getMessage(content, channel);
         messages.put(message.getIdLong(), content);
+        latestMessages.put(channel.getIdLong(), content);
+        latestEmbeds.remove(channel.getIdLong());
 
         when(message.getContentRaw()).thenAnswer(inv -> messages.get(message.getIdLong()));
         when(message.getIdLong()).thenReturn(CURRENT_ID);
@@ -231,6 +245,7 @@ public class MockJDA {
     public static Message mockMessage(String content, List<MessageEmbed> embeds, MessageChannel channel) {
         Message message = mockMessage(content, channel);
         MockJDA.embeds.put(message.getIdLong(), embeds.toArray(new MessageEmbed[0]));
+        latestEmbeds.put(channel.getIdLong(), embeds.toArray(new MessageEmbed[0]));
 
         when(message.getEmbeds()).thenAnswer(inv -> Arrays.asList(MockJDA.embeds.get(message.getIdLong())));
         when(message.getStartedThread()).thenReturn(null);
@@ -327,10 +342,12 @@ public class MockJDA {
     }
 
     public static void assertEmbeds(long id, List<MessageEmbed> expectedOutputs, boolean ignoreTimestamp) {
-        MessageEmbed[] embeds = MockJDA.embeds.get(id);
-        if (embeds == null && expectedOutputs.isEmpty()) return;
-        
-        assertEquals(expectedOutputs.size(), embeds.length, "Number of embeds");
+        assertEmbeds(expectedOutputs, Arrays.asList(embeds.getOrDefault(id, new MessageEmbed[0])), ignoreTimestamp);
+    }
+    
+
+    public static void assertEmbeds(List<MessageEmbed> expectedOutputs, List<MessageEmbed> embeds, boolean ignoreTimestamp) {
+        assertEquals(expectedOutputs.size(), embeds.size(), "Number of embeds");
 
         int i = 0;
         for (MessageEmbed embed : embeds) {
@@ -570,6 +587,7 @@ public class MockJDA {
     @SuppressWarnings("unchecked")
     private static <T> RestAction<T> mockAction(T object) {
         RestAction<T> action = mock(RestAction.class);
+        when(action.complete()).thenReturn(object);
 
         doAnswer(inv -> {
             Consumer<T> consumer = inv.getArgument(0);

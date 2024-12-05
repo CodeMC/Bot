@@ -32,6 +32,8 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import java.util.List;
 
+import org.jetbrains.annotations.VisibleForTesting;
+
 public class CmdApplication extends BotCommand{
 
     public CmdApplication(CodeMCBot bot){
@@ -54,7 +56,8 @@ public class CmdApplication extends BotCommand{
     @Override
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member){}
     
-    private static class Accept extends BotCommand{
+    @VisibleForTesting
+    static class Accept extends BotCommand{
 
         public Accept(CodeMCBot bot){
             super(bot);
@@ -99,7 +102,8 @@ public class CmdApplication extends BotCommand{
         }
     }
     
-    private static class Deny extends BotCommand{
+    @VisibleForTesting
+    static class Deny extends BotCommand{
         
         public Deny(CodeMCBot bot){
             super(bot);
