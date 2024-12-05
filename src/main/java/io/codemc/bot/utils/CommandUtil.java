@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 
 public class CommandUtil{
@@ -57,6 +58,17 @@ public class CommandUtil{
 
     public static MessageEmbed embedSuccess(String... lines){
         return EmbedReply.empty().success(lines).build();
+    }
+
+    public static MessageEmbed requestEmbed(String userLink, String repoLink, String submitter, String description, String id) {
+        return getEmbed()
+            .addField("User/Organisation:", userLink, true)
+            .addField("Repository:", repoLink, true)
+            .addField("Submitted by:", submitter, true)
+            .addField("Description", description, false)
+            .setFooter(id)
+            .setTimestamp(Instant.now())
+            .build();
     }
     
     public static class EmbedReply<T> {

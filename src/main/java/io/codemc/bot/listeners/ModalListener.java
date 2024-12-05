@@ -38,8 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-
 public class ModalListener extends ListenerAdapter{
     
     private final Logger logger = LoggerFactory.getLogger(ModalListener.class);
@@ -103,14 +101,7 @@ public class ModalListener extends ListenerAdapter{
                 String repoLink = MarkdownUtil.maskedLink(repo, repoLinkValue);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                MessageEmbed embed = CommandUtil.getEmbed()
-                    .addField("User/Organisation:", userLink, true)
-                    .addField("Repository:", repoLink, true)
-                    .addField("Submitted by:", submitter, true)
-                    .addField("Description", description, false)
-                    .setFooter(event.getUser().getId())
-                    .setTimestamp(Instant.now())
-                    .build();
+                MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description, event.getUser().getId());
                 
                 requestChannel.sendMessageEmbeds(embed)
                     .setActionRow(
