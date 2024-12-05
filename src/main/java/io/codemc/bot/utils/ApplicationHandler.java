@@ -29,6 +29,8 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +65,7 @@ public class ApplicationHandler{
                 CommandUtil.EmbedReply.from(hook).error("Provided Message does not have any embeds.").send();
                 return;
             }
-            
+
             MessageEmbed embed = embeds.get(0);
             if(embed.getFooter() == null || embed.getFields().isEmpty()){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a Footer or any Embed Fields").send();
@@ -85,7 +87,7 @@ public class ApplicationHandler{
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
                 return;
             }
-            
+
             hook.editOriginalFormat(
                 """
                 [2/5] Handling Join Request...
@@ -167,7 +169,7 @@ public class ApplicationHandler{
                 boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, repoName, repoLink, true);
                 boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
                 
-                if(!jenkinsSuccess || ! nexusSuccess)
+                if(!jenkinsSuccess || !nexusSuccess)
                     return;
                 
                 if(member == null){
@@ -308,7 +310,8 @@ public class ApplicationHandler{
         });
     }
     
-    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
+    @VisibleForTesting
+    static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
         String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied")));
         
         MessageEmbed embed = new EmbedBuilder()

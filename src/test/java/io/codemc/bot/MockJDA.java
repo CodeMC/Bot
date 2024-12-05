@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.AuditableRestAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
@@ -52,6 +53,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -63,9 +65,12 @@ public class MockJDA {
 
     private static final Map<Long, String> messages = new HashMap<>();
     private static final Map<Long, MessageEmbed[]> embeds = new HashMap<>();
+    private static final Map<Long, Member> members = new HashMap<>();
+
     private static long CURRENT_ID = 0;
 
     public static final JDA JDA = JDAObjects.getJDA();
+    public static final Member SELF = mockMember("Bot");
     public static final Guild GUILD = mockGuild();
     public static Modal CURRENT_MODAL = null;
 
@@ -79,6 +84,14 @@ public class MockJDA {
     public static final Role REVIEWER = mockRole("Reviewer", 1233971297185431582L, 2);
     public static final Role AUTHOR = mockRole("Author", CONFIG.getLong("author_role"), 1);
     public static final List<Role> ROLES = List.of(ADMINISTRATOR, MAINTAINER, REVIEWER, AUTHOR);
+
+    public static String getMessage(long id) {
+        return messages.get(id);
+    }
+
+    public static List<MessageEmbed> getEmbeds(long id) {
+        return Arrays.asList(embeds.get(id));
+    }
 
     public static InteractionHook mockInteractionHook(Member user, MessageChannel channel, InteractionType type) {
         return mockInteractionHook(mockInteraction(user, channel, type));
@@ -97,12 +110,12 @@ public class MockJDA {
         when(hook.editOriginal(anyString())).thenAnswer(inv -> {
             String content = inv.getArgument(0);
             messages.put(hook.getIdLong(), content);
-            return mockReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
+            return mockWebhookReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
         });
-        when(hook.editOriginalFormat(anyString(), any())).thenAnswer(inv -> {
-            String content = String.format(inv.getArgument(0), (Object[]) inv.getArguments()[1]);
+        when(hook.editOriginalFormat(anyString(), any(Object[].class))).thenAnswer(inv -> {
+            String content = String.format(inv.getArgument(0), (Object[]) inv.getRawArguments()[1]);
             messages.put(hook.getIdLong(), content);
-            return mockReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
+            return mockWebhookReply(WebhookMessageEditAction.class, hook, mockMessage(content, channel));
         });
 
         when(hook.editOriginalEmbeds(any(MessageEmbed[].class))).thenAnswer(inv -> {
@@ -112,7 +125,7 @@ public class MockJDA {
             else
                 embeds.put(hook.getIdLong(), new MessageEmbed[] { (MessageEmbed) obj });
             
-            return mockReply(WebhookMessageEditAction.class, hook, mockMessage(null, Arrays.asList(embeds.get(hook.getIdLong())), channel));
+            return mockWebhookReply(WebhookMessageEditAction.class, hook, mockMessage(null, Arrays.asList(embeds.get(hook.getIdLong())), channel));
         });
 
         when(hook.sendMessageEmbeds(any(), any(MessageEmbed[].class))).thenAnswer(inv -> {
@@ -129,7 +142,7 @@ public class MockJDA {
                     embeds.add((MessageEmbed) obj);
             }
             
-            return mockReply(WebhookMessageCreateAction.class, hook, mockMessage(null, embeds, channel));
+            return mockWebhookReply(WebhookMessageCreateAction.class, hook, mockMessage(null, embeds, channel));
         });
         
         return hook;
@@ -140,6 +153,7 @@ public class MockJDA {
         when(interaction.getJDA()).thenReturn(JDA);
         when(interaction.getChannel()).thenReturn(channel);
         when(interaction.getMember()).thenReturn(user);
+        when(interaction.getUser()).thenAnswer(inv -> user.getUser());
         when(interaction.getGuild()).thenReturn(GUILD);
         when(interaction.getTypeRaw()).thenReturn(type.getKey());
         when(interaction.getIdLong()).thenReturn(CURRENT_ID);
@@ -149,19 +163,66 @@ public class MockJDA {
 
     public static TextChannel mockChannel(String configName) {
         long id = CONFIG.getLong("channels", configName);
-        return (TextChannel) JDAObjects.getMessageChannel(configName.replace('_', '-'), id, Callback.single());
+        TextChannel channel = (TextChannel) JDAObjects.getMessageChannel(configName.replace('_', '-'), id, Callback.single());
+        
+        when(channel.getGuild()).thenReturn(GUILD);
+        when(channel.getJDA()).thenReturn(JDA);
+
+        when(channel.retrieveMessageById(anyLong())).thenAnswer(inv -> {
+            long messageId = inv.getArgument(0);
+            String content = messages.get(messageId);
+            Message message = mockMessage(
+                content, Arrays.asList(embeds.getOrDefault(messageId, new MessageEmbed[0])), channel
+            );
+
+            return mockAction(message);
+        });
+        when(channel.sendMessage(any(CharSequence.class))).thenAnswer(inv -> {
+            String content = inv.getArgument(0);
+            return mockReply(MessageCreateAction.class, mockMessage(content, channel));
+        });
+        when(channel.sendMessage(any(MessageCreateData.class))).thenAnswer(inv -> {
+            MessageCreateData data = inv.getArgument(0, MessageCreateData.class);
+            String content = data.getContent();
+            List<MessageEmbed> embeds = data.getEmbeds();
+
+            return mockReply(MessageCreateAction.class, mockMessage(content, embeds, channel));
+        });
+        when(channel.sendMessageFormat(anyString(), any(Object[].class))).thenAnswer(inv -> {
+            String content = String.format(inv.getArgument(0), (Object[]) inv.getRawArguments()[1]);
+            return mockReply(MessageCreateAction.class, mockMessage(content, channel));
+        });
+        when(channel.sendMessageEmbeds(any(), any(MessageEmbed[].class))).thenAnswer(inv -> {
+            MessageEmbed first = inv.getArgument(0);
+
+            List<MessageEmbed> embeds = new ArrayList<>();
+            embeds.add(first);
+            if (inv.getArguments().length > 1) {
+                Object obj = inv.getArgument(1);
+
+                if (obj instanceof MessageEmbed[] allEmbeds)
+                    embeds.addAll(Arrays.asList(allEmbeds));
+                else
+                    embeds.add((MessageEmbed) obj);
+            }
+            
+            return mockReply(MessageCreateAction.class, mockMessage(null, embeds, channel));
+        });
+
+        return channel;
     }
 
     public static Message mockMessage(String content, MessageChannel channel) {
         Message message = JDAObjects.getMessage(content, channel);
         messages.put(message.getIdLong(), content);
 
+        when(message.getContentRaw()).thenAnswer(inv -> messages.get(message.getIdLong()));
         when(message.getIdLong()).thenReturn(CURRENT_ID);
         when(message.getGuild()).thenReturn(GUILD);
 
         when(message.editMessage(anyString())).thenAnswer(inv -> {
             messages.put(message.getIdLong(), inv.getArgument(0));
-            return mockReply(MessageEditAction.class, mockInteractionHook(message.getMember(), channel, InteractionType.COMMAND), message);
+            return mockWebhookReply(MessageEditAction.class, mockInteractionHook(message.getMember(), channel, InteractionType.COMMAND), message);
         });
         
         return message;
@@ -171,7 +232,13 @@ public class MockJDA {
         Message message = mockMessage(content, channel);
         MockJDA.embeds.put(message.getIdLong(), embeds.toArray(new MessageEmbed[0]));
 
-        when(message.getEmbeds()).thenReturn(embeds);
+        when(message.getEmbeds()).thenAnswer(inv -> Arrays.asList(MockJDA.embeds.get(message.getIdLong())));
+        when(message.getStartedThread()).thenReturn(null);
+        when(message.delete()).thenAnswer(inv -> {
+            messages.remove(message.getIdLong());
+            MockJDA.embeds.remove(message.getIdLong());
+            return mockAuditLog();
+        });
 
         return message;
     }
@@ -184,6 +251,7 @@ public class MockJDA {
         when(guild.getJDA()).thenReturn(JDA);
         when(guild.getTextChannels()).thenReturn(CHANNELS);
         when(guild.getRoles()).thenReturn(ROLES);
+        when(guild.getSelfMember()).thenReturn(SELF);
 
         when(guild.addRoleToMember(any(UserSnowflake.class), any(Role.class))).thenAnswer(inv -> {
             Member member = inv.getArgument(0);
@@ -199,13 +267,25 @@ public class MockJDA {
             member.getRoles().remove(role);
             return mockAuditLog();
         });
-        when(guild.getRoleById(any(Long.class))).thenAnswer(inv -> {
+        when(guild.getRoleById(anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(0);
             return ROLES.stream().filter(role -> role.getIdLong() == id).findFirst().orElse(null);
         });
-        when(guild.getChannelById(any(), any(Long.class))).thenAnswer(inv -> {
+        when(guild.getChannelById(any(), anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(1);
             return CHANNELS.stream().filter(channel -> channel.getIdLong() == id).findFirst().orElse(null);
+        });
+        when(guild.getTextChannelById(anyLong())).thenAnswer(inv -> {
+            long id = inv.getArgument(0);
+            return CHANNELS.stream().filter(channel -> channel.getIdLong() == id).findFirst().orElse(null);
+        });
+        when(guild.getMemberById(anyString())).thenAnswer(inv -> {
+            long id = Long.parseLong(inv.getArgument(0));
+            return members.get(id);
+        });
+        when(guild.getMemberById(anyLong())).thenAnswer(inv -> {
+            long id = inv.getArgument(0);
+            return members.get(id);
         });
 
         return guild;
@@ -215,14 +295,19 @@ public class MockJDA {
         Member member = JDAObjects.getMember(username, "0000");
 
         long id = new SecureRandom().nextLong();
+        members.put(id, member);
+
+        when(member.getJDA()).thenReturn(JDA);
         when(member.getGuild()).thenReturn(GUILD);
+        when(member.getId()).thenReturn(Long.toString(id));
         when(member.getIdLong()).thenReturn(id);
+        when(member.getAsMention()).thenReturn("<@" + id + ">");
 
         List<Role> roles = new ArrayList<>();
         when(member.getRoles()).thenReturn(roles);
-
         when(member.getUser().getEffectiveName()).thenReturn(username);
         when(member.getUser().getIdLong()).thenReturn(id);
+        when(member.getUser().getAsMention()).thenReturn("<@" + id + ">");
 
         return member;
     }
@@ -241,7 +326,7 @@ public class MockJDA {
         return role;
     }
 
-    private static void assertEmbeds(long id, List<MessageEmbed> expectedOutputs, boolean ignoreTimestamp) {
+    public static void assertEmbeds(long id, List<MessageEmbed> expectedOutputs, boolean ignoreTimestamp) {
         MessageEmbed[] embeds = MockJDA.embeds.get(id);
         if (embeds == null && expectedOutputs.isEmpty()) return;
         
@@ -321,6 +406,8 @@ public class MockJDA {
         GUILD.addRoleToMember(user, ADMINISTRATOR);
 
         when(event.getMember()).thenReturn(user);
+        when(event.getUser()).thenAnswer(inv -> user.getUser());
+        when(event.getOptions()).thenAnswer(invocation -> options);
 
         when(event.getOption(anyString())).thenAnswer(invocation -> {
             if (options == null) return null;
@@ -429,7 +516,7 @@ public class MockJDA {
         return action;
     }
 
-    private static <T extends MessageRequest<?> & RestAction<?>> T mockReply(Class<T> clazz, InteractionHook hook, Message message) {
+    private static <T extends MessageRequest<?> & RestAction<?>> T mockWebhookReply(Class<T> clazz, InteractionHook hook, Message message) {
         T action = mock(clazz);
 
         doAnswer(inv -> {
@@ -461,10 +548,71 @@ public class MockJDA {
         return action;
     }
 
+    private static <T extends MessageRequest<?> & RestAction<?>> T mockReply(Class<T> clazz, Message message) {
+        T action = mock(clazz);
+
+        doAnswer(inv -> {
+            Consumer<Message> messageConsumer = inv.getArgument(0);
+            messageConsumer.accept(message);
+            return null;
+        }).when(action).queue(any());
+
+        when(action.getEmbeds()).thenAnswer(inv -> message.getEmbeds());
+        when(action.setEmbeds(anyCollection())).thenAnswer(inv -> {
+            Collection<MessageEmbed> embed = inv.getArgument(0);
+            embeds.put(message.getIdLong(), embed.toArray(new MessageEmbed[0]));
+            return action;
+        });
+
+        return action;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> RestAction<T> mockAction(T object) {
+        RestAction<T> action = mock(RestAction.class);
+
+        doAnswer(inv -> {
+            Consumer<T> consumer = inv.getArgument(0);
+            consumer.accept(object);
+            return null;
+        }).when(action).queue(any());
+
+        doAnswer(inv -> {
+            Consumer<T> consumer = inv.getArgument(0);
+            Consumer<Throwable> error = inv.getArgument(1);
+
+            try {
+                consumer.accept(object);
+            } catch (Exception e) {
+                error.accept(e);
+            }
+            return null;
+        }).when(action).queue(any(), any());
+
+        return action;
+    }
+
     @SuppressWarnings("unchecked")
     private static AuditableRestAction<Void> mockAuditLog() {
         AuditableRestAction<Void> action = mock(AuditableRestAction.class);
-        doAnswer(inv -> null).when(action).queue(any());
+        
+        doAnswer(inv -> {
+            Consumer<Void> consumer = inv.getArgument(0);
+            consumer.accept(null);
+            return null;
+        }).when(action).queue(any());
+
+        doAnswer(inv -> {
+            Consumer<Void> consumer = inv.getArgument(0);
+            Consumer<Throwable> error = inv.getArgument(1);
+
+            try {
+                consumer.accept(null);
+            } catch (Exception e) {
+                error.accept(e);
+            }
+            return null;
+        }).when(action).queue(any(), any());
 
         when(action.reason(any())).thenReturn(action);
 
