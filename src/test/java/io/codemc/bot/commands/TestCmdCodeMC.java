@@ -324,6 +324,8 @@ public class TestCmdCodeMC {
 
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Username provided!"));
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "Inexistent"), CommandUtil.embedError("The user does not exist!"));
+    
+        DatabaseAPI.removeUser("TestDelUser");
     }
 
 }
