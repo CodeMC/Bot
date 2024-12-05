@@ -50,11 +50,20 @@ public class TestCmdCodeMC {
     }
 
     @Test
+    @DisplayName("Test /codemc")
+    public void testCodemc() {
+        assertEquals("codemc", command.getName());
+        assertFalse(command.getHelp().isEmpty());
+        assertTrue(command.getChildren().length > 1);
+    }
+
+    @Test
     @DisplayName("Test /codemc jenkins")
     public void testJenkins() {
         Jenkins jenkins = (Jenkins) command.getChildren()[0];
 
         assertEquals("jenkins", jenkins.getName());
+        assertFalse(jenkins.getHelp().isEmpty());
         assertEquals(1, jenkins.getOptions().size());
 
         TestCommandListener listener = new TestCommandListener(jenkins);
@@ -76,6 +85,7 @@ public class TestCmdCodeMC {
         Nexus nexus = (Nexus) command.getChildren()[1];
 
         assertEquals("nexus", nexus.getName());
+        assertFalse(nexus.getHelp().isEmpty());
         assertEquals(1, nexus.getOptions().size());
 
         TestCommandListener listener = new TestCommandListener(nexus);
@@ -94,6 +104,7 @@ public class TestCmdCodeMC {
         Remove remove = (Remove) command.getChildren()[2];
 
         assertEquals("remove", remove.getName());
+        assertFalse(remove.getHelp().isEmpty());
         assertEquals(1, remove.getOptions().size());
         assertFalse(remove.allowedRoles.isEmpty());
 
@@ -117,6 +128,7 @@ public class TestCmdCodeMC {
         Validate validate = (Validate) command.getChildren()[3];
 
         assertEquals("validate", validate.getName());
+        assertFalse(validate.getHelp().isEmpty());
         assertEquals(1, validate.getOptions().size());
         assertFalse(validate.allowedRoles.isEmpty());
 
@@ -184,6 +196,7 @@ public class TestCmdCodeMC {
         Link link = (Link) command.getChildren()[4];
 
         assertEquals("link", link.getName());
+        assertFalse(link.getHelp().isEmpty());
         assertEquals(2, link.getOptions().size());
         assertFalse(link.allowedRoles.isEmpty());
 
@@ -219,6 +232,7 @@ public class TestCmdCodeMC {
         Unlink unlink = (Unlink) command.getChildren()[5];
 
         assertEquals("unlink", unlink.getName());
+        assertFalse(unlink.getHelp().isEmpty());
         assertEquals(2, unlink.getOptions().size());
         assertFalse(unlink.allowedRoles.isEmpty());
 
@@ -249,20 +263,21 @@ public class TestCmdCodeMC {
         ChangePassword changePassword = (ChangePassword) command.getChildren()[6];
 
         assertEquals("change-password", changePassword.getName());
+        assertFalse(changePassword.getHelp().isEmpty());
         assertEquals(1, changePassword.getOptions().size());
 
         SlashCommandEvent event = MockJDA.mockSlashCommandEvent(MockJDA.REQUEST_CHANNEL, changePassword, Map.of());
         TestCommandListener listener = new TestCommandListener(changePassword);
 
-        JenkinsAPI.createJenkinsUser("User", "1234");
-        NexusAPI.createNexus("User", "1234");
-        DatabaseAPI.addUser("User", event.getMember().getIdLong());
+        JenkinsAPI.createJenkinsUser("Bot", "1234");
+        NexusAPI.createNexus("Bot", "1234");
+        DatabaseAPI.addUser("Bot", event.getMember().getIdLong());
 
         MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedSuccess("Successfully changed your password!"));
 
-        JenkinsAPI.deleteUser("User");
-        NexusAPI.deleteNexus("User");
-        DatabaseAPI.removeUser("User");
+        JenkinsAPI.deleteUser("Bot");
+        NexusAPI.deleteNexus("Bot");
+        DatabaseAPI.removeUser("Bot");
     }
 
     @Test
@@ -271,6 +286,7 @@ public class TestCmdCodeMC {
         CreateUser createUser = (CreateUser) command.getChildren()[7];
 
         assertEquals("createuser", createUser.getName());
+        assertFalse(createUser.getHelp().isEmpty());
         assertEquals(2, createUser.getOptions().size());
         assertFalse(createUser.allowedRoles.isEmpty());
 
@@ -301,6 +317,7 @@ public class TestCmdCodeMC {
         DeleteUser delUser = (DeleteUser) command.getChildren()[8];
 
         assertEquals("deluser", delUser.getName());
+        assertFalse(delUser.getHelp().isEmpty());
         assertEquals(1, delUser.getOptions().size());
         assertFalse(delUser.allowedRoles.isEmpty());
 
