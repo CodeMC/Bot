@@ -69,7 +69,9 @@ public class MockJDA {
     private static final Map<Long, String> latestMessages = new HashMap<>();
     private static final Map<Long, MessageEmbed[]> latestEmbeds = new HashMap<>();
 
-    private static long CURRENT_ID = 0;
+    // Message ID controller - ensures unique IDs for each message
+    // Mostly needs to match Event ID for testing
+    public static long CURRENT_ID = 0;
 
     public static final JDA JDA = JDAObjects.getJDA();
     public static final Member SELF = mockMember("Bot");
@@ -230,9 +232,12 @@ public class MockJDA {
         latestMessages.put(channel.getIdLong(), content);
         latestEmbeds.remove(channel.getIdLong());
 
+        long id = CURRENT_ID;
         when(message.getContentRaw()).thenAnswer(inv -> messages.get(message.getIdLong()));
-        when(message.getIdLong()).thenReturn(CURRENT_ID);
+        when(message.getIdLong()).thenReturn(id);
+        when(message.getId()).thenReturn(Long.toString(id));
         when(message.getGuild()).thenReturn(GUILD);
+        when(message.getMember()).thenReturn(SELF);
 
         when(message.editMessage(anyString())).thenAnswer(inv -> {
             messages.put(message.getIdLong(), inv.getArgument(0));
@@ -392,19 +397,20 @@ public class MockJDA {
             Assertions.assertEquals(expectedOutput.getTimestamp(), embed.getTimestamp());
     }
 
-    public static void assertSlashCommandEvent(TestCommandListener listener, Map<String, Object> options, MessageEmbed... outputs) {
+    public static long assertSlashCommandEvent(TestCommandListener listener, Map<String, Object> options, MessageEmbed... outputs) {
         BotCommand command = listener.getCommand();
         SlashCommandEvent event = mockSlashCommandEvent(REQUEST_CHANNEL, command, options);
-        assertSlashCommandEvent(event, listener, outputs);
+        return assertSlashCommandEvent(event, listener, outputs);
     }
 
-    public static void assertSlashCommandEvent(SlashCommandEvent event, TestCommandListener listener, MessageEmbed... outputs) {
+    public static long assertSlashCommandEvent(SlashCommandEvent event, TestCommandListener listener, MessageEmbed... outputs) {
         listener.onEvent(event);
 
         if (outputs != null)
             assertEmbeds(event.getIdLong(), Arrays.asList(outputs), true);
 
         CURRENT_ID++;
+        return event.getIdLong();
     }
 
     public static SlashCommandEvent mockSlashCommandEvent(MessageChannel channel, BotCommand command, Map<String, Object> options) {
