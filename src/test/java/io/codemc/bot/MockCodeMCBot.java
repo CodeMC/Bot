@@ -20,6 +20,11 @@ public class MockCodeMCBot extends CodeMCBot {
         configHandler = new ConfigHandler();
         configHandler.loadConfig();
 
+        setTestConfig();
+        start();
+    }
+
+    public void setTestConfig() {
         // Set Nexus Password
         try {
             File file = new File("/tmp/admin.password");
@@ -36,8 +41,6 @@ public class MockCodeMCBot extends CodeMCBot {
         if (token != null && !token.isEmpty()) {
             configHandler.set(System.getenv("GITHUB_TOKEN"), "github");
         }
-
-        start();
     }
 
     @Override
