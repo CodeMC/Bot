@@ -60,6 +60,10 @@ dependencies {
 }
 
 tasks {
+    clean {
+        delete "logs"
+    }
+
     test {
         useJUnitPlatform()
 

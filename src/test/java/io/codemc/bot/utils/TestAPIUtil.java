@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
+
 public class TestAPIUtil {
 
     @BeforeAll
@@ -111,26 +113,61 @@ public class TestAPIUtil {
         assertNull(JenkinsAPI.getJobInfo(user2, j2));
         assertTrue(JenkinsAPI.deleteUser(user2));
         assertTrue(JenkinsAPI.getJenkinsUser(user2).isEmpty());
+
+        String user3 = "TestJenkins3";
+        String j3 = "Job";
+        Member u3 = MockJDA.mockMember(user3);
+        String p3 = APIUtil.newPassword();
+        InteractionHook h3 = MockJDA.mockInteractionHook(u3, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+
+        JenkinsAPI.createJenkinsUser(user3, p3, false);
+        APIUtil.createJenkinsJob(h3, user3, p3, j3, "https://github.com/CodeMC/Bot", false);
+
+        MockJDA.assertEmbeds(
+            List.of(CommandUtil.embedError("Jenkins User for " + user3 + " already exists!")), 
+            MockJDA.getEmbeds(h3.getIdLong()),
+            true
+        );
+
+        assertTrue(JenkinsAPI.deleteUser(user3));
     }
 
     @Test
     @DisplayName("Test APIUtil#changePassword")
     public void testChangePassword() {
-        String username = "TestChangePassword";
-        String job = "Job";
-        Member user = MockJDA.mockMember(username);
-        InteractionHook hook = MockJDA.mockInteractionHook(user, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+        String u1 = "TestChangePassword1";
+        String j1 = "Job";
+        Member user1 = MockJDA.mockMember(u1);
+        InteractionHook h1 = MockJDA.mockInteractionHook(user1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
-        String oldPassword = APIUtil.newPassword();
-        assertTrue(APIUtil.createNexus(hook, username, oldPassword));
-        assertTrue(APIUtil.createJenkinsJob(hook, username, oldPassword, job, "https://github.com/CodeMC/API", false));
+        String old1 = APIUtil.newPassword();
+        assertTrue(APIUtil.createNexus(h1, u1, old1));
+        assertTrue(APIUtil.createJenkinsJob(h1, u1, old1, j1, "https://github.com/CodeMC/API", false));
 
-        String newPassword = APIUtil.newPassword();
-        assertTrue(APIUtil.changePassword(hook, username, newPassword));
+        String new1 = APIUtil.newPassword();
+        assertTrue(APIUtil.changePassword(h1, u1, new1));
 
-        assertTrue(JenkinsAPI.deleteJob(username, job));
-        assertTrue(JenkinsAPI.deleteUser(username));
-        assertTrue(NexusAPI.deleteNexus(username));
+        assertTrue(JenkinsAPI.deleteJob(u1, j1));
+        assertTrue(JenkinsAPI.deleteUser(u1));
+        assertTrue(NexusAPI.deleteNexus(u1));
+
+        String u2 = "TestChangePassword2";
+        Member user2 = MockJDA.mockMember(u2);
+        InteractionHook h2 = MockJDA.mockInteractionHook(user2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+
+        String old2 = APIUtil.newPassword();
+        assertTrue(APIUtil.createNexus(h2, u2, old2));
+
+        String new2 = APIUtil.newPassword();
+        APIUtil.changePassword(h2, u2, new2);
+
+        MockJDA.assertEmbeds(
+            List.of(CommandUtil.embedError("Failed to change Jenkins Password for " + u2 + "!")), 
+            MockJDA.getEmbeds(h2.getIdLong()), 
+            false
+        );
+
+        assertTrue(NexusAPI.deleteNexus(u2));
     }
 
 }
