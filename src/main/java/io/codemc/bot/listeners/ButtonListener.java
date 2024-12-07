@@ -32,6 +32,7 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +54,11 @@ public class ButtonListener extends ListenerAdapter{
             CommandUtil.EmbedReply.from(event).error("Buttons only work on the CodeMC Server!").send();
             return;
         }
-        
-        if(event.getButton().getId() == null){
-            event.deferReply().queue();
+
+        String id = event.getButton().getId();
+        if (id == null) {
+            CommandUtil.EmbedReply.from(event).error("Received Button Interaction with no ID!").send();
+            logger.error("Received Button Interaction with no ID!");
             return;
         }
         
@@ -73,13 +76,6 @@ public class ButtonListener extends ListenerAdapter{
             CommandUtil.EmbedReply.from(event).error("Cannot get Member from Server!").send();
             return;
         }
-
-        String id = event.getButton().getId();
-        if (id == null) {
-            CommandUtil.EmbedReply.from(event).error("Received Button Interaction with no ID!").send();
-            logger.error("Received Button Interaction with no ID!");
-            return;
-        }
         
         String[] values = id.split(":");
         if(values.length < 4 || !values[0].equals("application")){
@@ -90,7 +86,7 @@ public class ButtonListener extends ListenerAdapter{
         if(!values[1].equals("accept") && !values[1].equals("deny")){
             CommandUtil.EmbedReply.from(event).error(
                 "Received unknown Button Application type.",
-                "Expected `accept` or `deny` but got " + values[1] + "."
+                "Expected `accept` or `deny` but got `" + values[1] + "`."
             ).send();
             return;
         }
@@ -128,7 +124,8 @@ public class ButtonListener extends ListenerAdapter{
         }
     }
     
-    private boolean lacksRole(List<Long> roleIds, List<Long> allowedRoleIds){
+    @VisibleForTesting
+    boolean lacksRole(List<Long> roleIds, List<Long> allowedRoleIds){
         if(roleIds.isEmpty())
             return true;
         
