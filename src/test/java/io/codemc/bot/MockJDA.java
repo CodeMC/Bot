@@ -107,7 +107,7 @@ public class MockJDA {
     }
 
     public static InteractionHook mockInteractionHook(Member user, MessageChannel channel, InteractionType type) {
-        return mockInteractionHook(user, channel, type, -1);
+        return mockInteractionHook(user, channel, type, RANDOM.nextLong(0, Long.MAX_VALUE));
     }
 
     public static InteractionHook mockInteractionHook(Member user, MessageChannel channel, InteractionType type, long id) {
@@ -167,7 +167,6 @@ public class MockJDA {
 
     public static Interaction mockInteraction(Member user, MessageChannel channel, InteractionType type, long id) {
         Interaction interaction = mock(Interaction.class);
-        long id0 = id == -1 ? RANDOM.nextLong() : id;
 
         when(interaction.getJDA()).thenReturn(JDA);
         when(interaction.getChannel()).thenReturn(channel);
@@ -177,7 +176,7 @@ public class MockJDA {
         when(interaction.getUser()).thenAnswer(inv -> user.getUser());
         when(interaction.getGuild()).thenReturn(GUILD);
         when(interaction.getTypeRaw()).thenReturn(type.getKey());
-        when(interaction.getIdLong()).thenReturn(id0);
+        when(interaction.getIdLong()).thenReturn(id);
 
         return interaction;
     }
@@ -242,7 +241,7 @@ public class MockJDA {
     }
 
     public static Message mockMessage(String content, MessageChannel channel) {
-        return mockMessage(content, channel, RANDOM.nextLong());
+        return mockMessage(content, channel, RANDOM.nextLong(0, Long.MAX_VALUE));
     }
 
     public static Message mockMessage(String content, MessageChannel channel, long id) {
@@ -274,7 +273,7 @@ public class MockJDA {
     }
 
     public static Message mockMessage(String content, List<MessageEmbed> embeds, MessageChannel channel) {
-        return mockMessage(content, embeds, channel, RANDOM.nextLong());
+        return mockMessage(content, embeds, channel, RANDOM.nextLong(0, Long.MAX_VALUE));
     }
 
     public static Message mockMessage(String content, List<MessageEmbed> embeds, MessageChannel channel, long id) {
@@ -338,7 +337,7 @@ public class MockJDA {
     public static Member mockMember(String username) {
         Member member = JDAObjects.getMember(username, "0000");
 
-        long id = RANDOM.nextLong();
+        long id = RANDOM.nextLong(0, Long.MAX_VALUE);
         members.put(id, member);
 
         when(member.getJDA()).thenReturn(JDA);
@@ -438,7 +437,7 @@ public class MockJDA {
 
     public static SlashCommandEvent mockSlashCommandEvent(MessageChannel channel, BotCommand command, Map<String, Object> options) {
         SlashCommandEvent event = mock(SlashCommandEvent.class);
-        long id = RANDOM.nextLong();
+        long id = RANDOM.nextLong(0, Long.MAX_VALUE);
 
         when(event.getName()).thenAnswer(invocation -> command.getName());
         when(event.getSubcommandName()).thenAnswer(invocation -> command.getName());
@@ -531,7 +530,7 @@ public class MockJDA {
     public static ButtonInteractionEvent mockButtonInteractionEvent(Message message, Button button) {
         ButtonInteractionEvent event = mock(ButtonInteractionEvent.class);
         TextChannel channel = message.getChannel().asTextChannel();
-        long id = RANDOM.nextLong();
+        long id = RANDOM.nextLong(0, Long.MAX_VALUE);
 
         when(event.getGuild()).thenReturn(GUILD);
         when(event.getMessageChannel()).thenReturn(channel);
