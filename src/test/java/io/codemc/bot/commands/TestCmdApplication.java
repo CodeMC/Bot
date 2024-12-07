@@ -62,18 +62,13 @@ public class TestCmdApplication {
         
         MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
-        MockJDA.CURRENT_ID++;
-
-        JenkinsAPI.deleteUser(username);
-        NexusAPI.deleteNexus(username);
-        DatabaseAPI.removeUser(username);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNull(NexusAPI.getNexusUser(username));
         assertNull(DatabaseAPI.getUser(username));
 
-        long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId()));
+        long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId()), (MessageEmbed[]) null);
 
         String expected = String.format("""
             [5/5] Handling Join Request...
@@ -125,14 +120,13 @@ public class TestCmdApplication {
 
         MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
-        MockJDA.CURRENT_ID++;
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
         assertNull(NexusAPI.getNexusUser(username));
         assertNull(DatabaseAPI.getUser(username));
 
-        long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId(), "reason", "Denied"));
+        long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId(), "reason", "Denied"), (MessageEmbed[]) null);
 
         String expected = String.format(                        """
             [<:like:935126958193405962>] Handling of Join Request complete!
@@ -147,7 +141,7 @@ public class TestCmdApplication {
               - Request Message deleted!
             - [<:like:935126958193405962>] Finished rejecting join request of %s!
             """, member.getId(), member.getUser().getEffectiveName());
-        
+
         assertEquals(expected, MockJDA.getMessage(id));
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
