@@ -32,7 +32,6 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -113,18 +112,20 @@ public class ModalListener extends ListenerAdapter{
                                 "[Request sent!](" + message.getJumpUrl() + ")")
                                 .send();
                             
-                            RestAction.allOf(
-                                message.createThreadChannel("Access Request - " + event.getUser().getName()),
-                                message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)),
-                                message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false))
-                            ).queue();
+                            message.createThreadChannel("Access Request - " + event.getUser().getName()).queue();
+                            message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)).queue();
+                            message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false)).queue();
                             
                             logger.info("[Access Request] User {} requested access to the CI.", event.getUser().getEffectiveName());
                         },
-                        e -> CommandUtil.EmbedReply.from(hook).error(
-                            "Error while submitting request!",
-                            "Reported Error: " + e.getMessage()
-                        ).send()
+                        e -> {
+                            CommandUtil.EmbedReply.from(hook).error(
+                                "Error while submitting request!",
+                                "Reported Error: " + e.getMessage()
+                            ).send();
+
+                            logger.error("Error while submitting request", e);
+                        }
                 );
             });
             
