@@ -51,7 +51,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Assertions;
@@ -65,10 +64,12 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("unchecked")
 public class MockJDA {
 
     private static final ConfigHandler CONFIG = MockCodeMCBot.INSTANCE.getConfigHandler();
@@ -190,7 +191,7 @@ public class MockJDA {
 
     private static MessageChannelUnion mockUnion(MessageChannel channel) {
         MessageChannelUnion union = mock(MessageChannelUnion.class);
-        when(union.asTextChannel()).thenAnswer(inv -> (TextChannel) channel);
+        when(union.asTextChannel()).thenAnswer(inv -> channel);
         when(union.getJDA()).thenReturn(JDA);
         
         return union;
@@ -202,6 +203,7 @@ public class MockJDA {
 
         when(channel.getGuild()).thenReturn(GUILD);
         when(channel.getJDA()).thenReturn(JDA);
+        when(channel.canTalk()).thenReturn(true);
 
         when(channel.retrieveMessageById(anyLong())).thenAnswer(inv -> {
             long messageId = inv.getArgument(0);
@@ -257,7 +259,7 @@ public class MockJDA {
         latestMessages.put(channel.getIdLong(), content);
         latestEmbeds.remove(channel.getIdLong());
 
-        when(message.getContentRaw()).thenAnswer(inv -> messages.get(message.getIdLong()));
+        when(message.getContentRaw()).thenAnswer(inv -> messages.get(id));
         when(message.getJumpUrl()).thenReturn("<Jump URL>");
         when(message.getIdLong()).thenReturn(id);
         when(message.getId()).thenReturn(Long.toString(id));
@@ -267,14 +269,28 @@ public class MockJDA {
 
         when(message.getStartedThread()).thenReturn(null);
         when(message.delete()).thenAnswer(inv -> {
-            messages.remove(message.getIdLong());
-            MockJDA.embeds.remove(message.getIdLong());
+            messages.remove(id);
+            MockJDA.embeds.remove(id);
             return mockAuditLog();
         });
 
         when(message.editMessage(anyString())).thenAnswer(inv -> {
-            messages.put(message.getIdLong(), inv.getArgument(0));
-            return mockWebhookReply(MessageEditAction.class, mockInteractionHook(message.getMember(), channel, InteractionType.COMMAND), message);
+            messages.put(id, inv.getArgument(0));
+            return mockReply(MessageEditAction.class, message);
+        });
+        when(message.editMessageEmbeds(any(MessageEmbed[].class))).thenAnswer(inv -> {
+            Object obj = inv.getArgument(0);
+            if (obj instanceof MessageEmbed[] allEmbeds)
+                embeds.put(id, allEmbeds);
+            else
+                embeds.put(id, new MessageEmbed[] { (MessageEmbed) obj });
+            
+            return mockReply(MessageEditAction.class, message);
+        });
+        when(message.editMessageEmbeds(anyCollection())).thenAnswer(inv -> {
+            Collection<MessageEmbed> allEmbeds = inv.getArgument(0);
+            embeds.put(id, allEmbeds.toArray(new MessageEmbed[0]));
+            return mockReply(MessageEditAction.class, message);
         });
 
         when(message.createThreadChannel(anyString())).thenAnswer(inv -> mock(ThreadChannelAction.class));
@@ -332,6 +348,10 @@ public class MockJDA {
         when(guild.getTextChannelById(anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(0);
             return CHANNELS.stream().filter(channel -> channel.getIdLong() == id).findFirst().orElse(null);
+        });
+        when(guild.getTextChannelById(anyString())).thenAnswer(inv -> {
+            String id = inv.getArgument(0);
+            return CHANNELS.stream().filter(channel -> channel.getId().equals(id)).findFirst().orElse(null);
         });
         when(guild.getMemberById(anyString())).thenAnswer(inv -> {
             long id = Long.parseLong(inv.getArgument(0));
@@ -493,7 +513,15 @@ public class MockJDA {
             String key = inv.getArgument(0);
             Object def = inv.getArgument(1);
 
-            return options.containsKey(key) ? options.get(key) : def;
+            return options.getOrDefault(key, def);
+        });
+        when(event.getOption(anyString(), isA(Object.class), any())).thenAnswer(inv -> {
+            if (options == null) return null;
+
+            String key = inv.getArgument(0);
+            Object def = inv.getArgument(1);
+
+            return options.getOrDefault(key, def);
         });
 
         mockReplyCallbacks(event, channel, id);
@@ -624,12 +652,8 @@ public class MockJDA {
             return mockReply(mockMessage(null, embeds, channel, id));
         });
 
-        when(event.deferReply()).thenAnswer(inv -> {
-            return mockReply(mockMessage(null, channel, id));
-        });
-        when(event.deferReply(anyBoolean())).thenAnswer(inv -> {
-            return mockReply(mockMessage(null, channel, id));
-        });
+        when(event.deferReply()).thenAnswer(inv -> mockReply(mockMessage(null, channel, id)));
+        when(event.deferReply(anyBoolean())).thenAnswer(inv -> mockReply(mockMessage(null, channel, id)));
     }
 
     private static ReplyCallbackAction mockReply(Message message) {
@@ -638,9 +662,7 @@ public class MockJDA {
         messages.put(message.getIdLong(), message.getContentRaw());
         embeds.put(message.getIdLong(), message.getEmbeds().toArray(new MessageEmbed[0]));
         
-        when(action.getEmbeds()).thenAnswer(inv -> {
-            return embeds.get(message.getIdLong());
-        });
+        when(action.getEmbeds()).thenAnswer(inv -> embeds.get(message.getIdLong()));
 
         when(action.setEmbeds(anyCollection())).thenAnswer(inv -> {
             Collection<MessageEmbed> embed = inv.getArgument(0);
@@ -691,9 +713,7 @@ public class MockJDA {
             return null;
         }).when(action).queue(any());
 
-        when(action.getEmbeds()).thenAnswer(inv -> {
-            return embeds.get(message.getIdLong());
-        });
+        when(action.getEmbeds()).thenAnswer(inv -> embeds.get(message.getIdLong()));
 
         when(action.setEmbeds(anyCollection())).thenAnswer(inv -> {
             Collection<MessageEmbed> embed = inv.getArgument(0);
@@ -745,10 +765,13 @@ public class MockJDA {
         when(action.setActionRow(any(ItemComponent[].class))).thenAnswer(inv -> action);
         when(action.setActionRow(anyCollection())).thenAnswer(inv -> action);
 
+        if (action instanceof MessageEditAction edit) {
+            when(edit.setReplace(anyBoolean())).thenReturn(edit);
+        }
+
         return action;
     }
 
-    @SuppressWarnings("unchecked")
     private static <T> RestAction<T> mockAction(T object) {
         RestAction<T> action = mock(RestAction.class);
         when(action.complete()).thenReturn(object);
@@ -774,7 +797,6 @@ public class MockJDA {
         return action;
     }
 
-    @SuppressWarnings("unchecked")
     private static AuditableRestAction<Void> mockAuditLog() {
         AuditableRestAction<Void> action = mock(AuditableRestAction.class);
         
