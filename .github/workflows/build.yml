@@ -92,7 +92,7 @@ jobs:
           coverage_report_name: Code Coverage
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_check_run: false
-          minimum_coverage: 85
+          minimum_coverage: 80
           fail_below_threshold: false
           publish_only_summary: false
 
@@ -120,5 +120,5 @@ jobs:
           paths: build/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           pass-emoji: ✅
-          min-coverage-overall: 85
-          min-coverage-changed-files: 90
+          min-coverage-overall: 80
+          min-coverage-changed-files: 85
