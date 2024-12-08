@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
@@ -33,7 +35,7 @@ import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Member;
 
 public class TestCmdCodeMC {
-    
+
     private static CmdCodeMC command;
 
     @BeforeAll
@@ -113,13 +115,66 @@ public class TestCmdCodeMC {
         JenkinsAPI.createJenkinsUser("TestRemove", "1234");
         NexusAPI.createNexus("TestRemove", "1234");
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestRemove").isEmpty());
-        assertNotNull(NexusAPI.getNexusUser("TestRemove"));
+        assertTrue(JenkinsAPI.existsUser("TestRemove"));
+        assertTrue(NexusAPI.exists("TestRemove"));
 
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestRemove"), CommandUtil.embedSuccess("Successfully removed TestRemove from the CodeMC Services!"));
 
-        assertTrue(JenkinsAPI.getJenkinsUser("TestRemove").isEmpty());
-        assertNull(NexusAPI.getNexusUser("TestRemove"));
+        assertFalse(JenkinsAPI.existsUser("TestRemove"));
+        assertFalse(NexusAPI.exists("TestRemove"));
+
+        MockCodeMCBot.INSTANCE.delete("TestRemove2");
+        DatabaseAPI.removeUser("TestRemove2");
+        Member m1 = MockJDA.mockMember("TestRemove2");
+        MockJDA.GUILD.addRoleToMember(m1, MockJDA.AUTHOR);
+
+        JenkinsAPI.createJenkinsUser("TestRemove2", "5678");
+        NexusAPI.createNexus("TestRemove2", "5678");
+        DatabaseAPI.addUser("TestRemove2", m1.getIdLong());
+
+        assertTrue(JenkinsAPI.existsUser("TestRemove2"));
+        assertTrue(NexusAPI.exists("TestRemove2"));
+        assertNotNull(DatabaseAPI.getUser("TestRemove2"));
+        assertEquals(m1.getIdLong(), DatabaseAPI.getUser("TestRemove2").getDiscord());
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestRemove2"), CommandUtil.embedSuccess("Revoked Author Status from TestRemove2!"));
+
+        assertFalse(JenkinsAPI.existsUser("TestRemove2"));
+        assertFalse(NexusAPI.exists("TestRemove2"));
+        assertNull(DatabaseAPI.getUser("TestRemove2"));
+        
+        MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Jenkins User provided!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "Inexistent"), CommandUtil.embedError("The user does not have a Jenkins account!"));
+    
+        Member m2 = MockJDA.mockMember("TestRemove3");
+
+        JenkinsAPI.createJenkinsUser("TestRemove3", "1234");
+        NexusAPI.createNexus("TestRemove3", "1234");
+        DatabaseAPI.addUser("TestRemove3", m2.getIdLong());
+
+        assertTrue(JenkinsAPI.existsUser("TestRemove3"));
+        assertTrue(NexusAPI.exists("TestRemove3"));
+        assertNotNull(DatabaseAPI.getUser("TestRemove3"));
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestRemove3"), CommandUtil.embedError("User was deleted, but is not an Author!"));
+
+        assertFalse(JenkinsAPI.existsUser("TestRemove3"));
+        assertFalse(NexusAPI.exists("TestRemove3"));
+        assertNull(DatabaseAPI.getUser("TestRemove3"));
+
+        JenkinsAPI.createJenkinsUser("TestRemove4", "1234");
+        NexusAPI.createNexus("TestRemove4", "1234");
+        DatabaseAPI.addUser("TestRemove4", -10L);
+
+        assertTrue(JenkinsAPI.existsUser("TestRemove4"));
+        assertTrue(NexusAPI.exists("TestRemove4"));
+        assertNotNull(DatabaseAPI.getUser("TestRemove4"));
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestRemove4"), CommandUtil.embedSuccess("Successfully removed TestRemove4 from the CodeMC Services!"));
+
+        assertFalse(JenkinsAPI.existsUser("TestRemove4"));
+        assertFalse(NexusAPI.exists("TestRemove4"));
+        assertNull(DatabaseAPI.getUser("TestRemove4"));
     }
 
     @Test
@@ -138,13 +193,13 @@ public class TestCmdCodeMC {
 
         JenkinsAPI.createJenkinsUser("TestValidate_1", "1234");
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_1").isEmpty());
-        assertNull(NexusAPI.getNexusUser("TestValidate_1"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_1"));
+        assertFalse(NexusAPI.exists("TestValidate_1"));
 
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestValidate_1"), CommandUtil.embedSuccess("Successfully validated 1 User(s)"));
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_1").isEmpty());
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_1"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_1"));
+        assertTrue(NexusAPI.exists("TestValidate_1"));
 
         MockCodeMCBot.INSTANCE.delete("TestValidate_1");
 
@@ -152,13 +207,13 @@ public class TestCmdCodeMC {
 
         NexusAPI.createNexus("TestValidate_2", "1234");
 
-        assertTrue(JenkinsAPI.getJenkinsUser("TestValidate_2").isEmpty());
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_2"));
+        assertFalse(JenkinsAPI.existsUser("TestValidate_2"));
+        assertTrue(NexusAPI.exists("TestValidate_2"));
 
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestValidate_2"), CommandUtil.embedSuccess("Successfully validated 1 User(s)"));
 
-        assertNotNull(JenkinsAPI.getJenkinsUser("TestValidate_2"));
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_2"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_2"));
+        assertTrue(NexusAPI.exists("TestValidate_2"));
 
         MockCodeMCBot.INSTANCE.delete("TestValidate_2");
 
@@ -168,22 +223,22 @@ public class TestCmdCodeMC {
         JenkinsAPI.createJenkinsUser("TestValidate_31", "1234");
         JenkinsAPI.createJenkinsUser("TestValidate_32", "1234");
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_30").isEmpty());
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_31").isEmpty());
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_32").isEmpty());
-        assertNull(NexusAPI.getNexusUser("TestValidate_30"));
-        assertNull(NexusAPI.getNexusUser("TestValidate_31"));
-        assertNull(NexusAPI.getNexusUser("TestValidate_32"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_30"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_31"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_32"));
+        assertFalse(NexusAPI.exists("TestValidate_30"));
+        assertFalse(NexusAPI.exists("TestValidate_31"));
+        assertFalse(NexusAPI.exists("TestValidate_32"));
 
         int size1 = JenkinsAPI.getAllJenkinsUsers().size();
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedSuccess("Successfully validated " + size1 + " User(s)"));
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_30").isEmpty());
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_31").isEmpty());
-        assertFalse(JenkinsAPI.getJenkinsUser("TestValidate_32").isEmpty());
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_30"));
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_31"));
-        assertNotNull(NexusAPI.getNexusUser("TestValidate_32"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_30"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_31"));
+        assertTrue(JenkinsAPI.existsUser("TestValidate_32"));
+        assertTrue(NexusAPI.exists("TestValidate_30"));
+        assertTrue(NexusAPI.exists("TestValidate_31"));
+        assertTrue(NexusAPI.exists("TestValidate_32"));
 
         MockCodeMCBot.INSTANCE.delete("TestValidate_30");
         MockCodeMCBot.INSTANCE.delete("TestValidate_31");
@@ -206,12 +261,23 @@ public class TestCmdCodeMC {
         MockJDA.GUILD.addRoleToMember(m1, MockJDA.AUTHOR);
 
         MockCodeMCBot.INSTANCE.create("TestLink", "Job");
-        DatabaseAPI.removeUser("TestLink");
 
         assertNull(DatabaseAPI.getUser("TestLink"));
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedSuccess("Linked Discord User TestLink to Jenkins User TestLink!"));
         assertNotNull(DatabaseAPI.getUser("TestLink"));
         assertEquals(m1.getIdLong(), DatabaseAPI.getUser("TestLink").getDiscord());
+
+        Member m2 = MockJDA.mockMember("TestLink2");
+        MockJDA.GUILD.addRoleToMember(m2, MockJDA.AUTHOR);
+
+        MockCodeMCBot.INSTANCE.create("TestLink2", "Job");
+        MockCodeMCBot.INSTANCE.create("TestLink3", "Job");
+
+        assertNull(DatabaseAPI.getUser("TestLink2"));
+        assertNull(DatabaseAPI.getUser("TestLink3"));
+
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink2", "discord", m2), CommandUtil.embedSuccess("Linked Discord User TestLink2 to Jenkins User TestLink2!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink3", "discord", m2), CommandUtil.embedSuccess("Linked Discord User TestLink2 to Jenkins User TestLink3!"));
 
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedSuccess("Linked Discord User TestLink to Jenkins User TestLink!"));
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Jenkins User provided!"));
@@ -223,7 +289,11 @@ public class TestCmdCodeMC {
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestLink", "discord", m1), CommandUtil.embedError("The user is not an Author!"));
     
         MockCodeMCBot.INSTANCE.delete("TestLink");
+        MockCodeMCBot.INSTANCE.delete("TestLink2");
+        MockCodeMCBot.INSTANCE.delete("TestLink3");
         DatabaseAPI.removeUser("TestLink");
+        DatabaseAPI.removeUser("TestLink2");
+        DatabaseAPI.removeUser("TestLink3");
     }
 
     @Test
@@ -241,8 +311,6 @@ public class TestCmdCodeMC {
         Member m1 = MockJDA.mockMember("TestUnlink");
         MockJDA.GUILD.addRoleToMember(m1, MockJDA.AUTHOR);
 
-        DatabaseAPI.removeUser("TestUnlink");
-        MockCodeMCBot.INSTANCE.delete("TestUnlink");
         MockCodeMCBot.INSTANCE.create("TestUnlink", "Job");
         DatabaseAPI.addUser("TestUnlink", m1.getIdLong());
 
@@ -255,6 +323,27 @@ public class TestCmdCodeMC {
     
         MockCodeMCBot.INSTANCE.delete("TestUnlink");
         DatabaseAPI.removeUser("TestUnlink");
+
+        Member m2 = MockJDA.mockMember("TestUnlink2");
+        MockJDA.GUILD.addRoleToMember(m2, MockJDA.AUTHOR);
+
+        DatabaseAPI.removeUser("TestUnlink2");
+        DatabaseAPI.removeUser("TestUnlink3");
+        MockCodeMCBot.INSTANCE.create("TestUnlink2", "Job");
+        MockCodeMCBot.INSTANCE.create("TestUnlink3", "Job");
+        DatabaseAPI.addUser("TestUnlink2", m2.getIdLong());
+        DatabaseAPI.addUser("TestUnlink3", m2.getIdLong());
+
+        assertNotNull(DatabaseAPI.getUser("TestUnlink2"));
+        assertNotNull(DatabaseAPI.getUser("TestUnlink3"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("discord", m2, "username", "TestUnlink3"),CommandUtil.embedSuccess("Unlinked Discord User TestUnlink2 from their Jenkins/Nexus account!"));
+        assertNotNull(DatabaseAPI.getUser("TestUnlink2"));
+        assertNull(DatabaseAPI.getUser("TestUnlink3"));
+
+        MockCodeMCBot.INSTANCE.delete("TestUnlink2");
+        MockCodeMCBot.INSTANCE.delete("TestUnlink3");
+        DatabaseAPI.removeUser("TestUnlink2");
+        DatabaseAPI.removeUser("TestUnlink3");
     }
 
     @Test
@@ -275,9 +364,18 @@ public class TestCmdCodeMC {
 
         MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedSuccess("Successfully changed your password!"));
 
-        JenkinsAPI.deleteUser("Bot");
-        NexusAPI.deleteNexus("Bot");
-        DatabaseAPI.removeUser("Bot");
+        assertTrue(JenkinsAPI.deleteUser("Bot"));
+        assertTrue(NexusAPI.deleteNexus("Bot"));
+
+        MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedError("You do not have a Jenkins account!"));
+
+        assertEquals(1, DatabaseAPI.removeUser("Bot"));
+
+        MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedError("You are not linked to any Jenkins/Nexus accounts!"));
+
+        when(event.getMember().getRoles()).thenReturn(List.of());
+
+        MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedError("Only Authors can regenerate their credentials."));
     }
 
     @Test
@@ -328,15 +426,15 @@ public class TestCmdCodeMC {
         MockCodeMCBot.INSTANCE.create("TestDelUser", "Job");
         DatabaseAPI.addUser("TestDelUser", m1.getIdLong());
 
-        assertFalse(JenkinsAPI.getJenkinsUser("TestDelUser").isEmpty());
-        assertNotNull(NexusAPI.getNexusUser("TestDelUser"));
+        assertTrue(JenkinsAPI.existsUser("TestDelUser"));
+        assertTrue(NexusAPI.exists("TestDelUser"));
         assertNotNull(DatabaseAPI.getUser("TestDelUser"));
         assertEquals(m1.getIdLong(), DatabaseAPI.getUser("TestDelUser").getDiscord());
 
         MockJDA.assertSlashCommandEvent(listener, Map.of("username", "TestDelUser"), CommandUtil.embedSuccess("Successfully deleted user TestDelUser!"));
 
-        assertTrue(JenkinsAPI.getJenkinsUser("TestDelUser").isEmpty());
-        assertNull(NexusAPI.getNexusUser("TestDelUser"));
+        assertFalse(JenkinsAPI.existsUser("TestDelUser"));
+        assertFalse(NexusAPI.exists("TestDelUser"));
         assertNull(DatabaseAPI.getUser("TestDelUser"));
 
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Invalid Username provided!"));

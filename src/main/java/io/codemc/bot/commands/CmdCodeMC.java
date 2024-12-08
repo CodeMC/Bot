@@ -236,7 +236,7 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
             }
@@ -269,7 +269,7 @@ public class CmdCodeMC extends BotCommand {
                     .anyMatch(role -> role.getIdLong() == authorRole.getIdLong());
 
             if (!hasAuthor) {
-                CommandUtil.EmbedReply.from(hook).error("The user is not an Author!").send();
+                CommandUtil.EmbedReply.from(hook).error("User was deleted, but is not an Author!").send();
                 return;
             }
 
@@ -395,7 +395,7 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
             }
@@ -531,14 +531,17 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("You do not have a Jenkins account!").send();
                 return;
             }
 
             String password = APIUtil.newPassword();
             boolean success = APIUtil.changePassword(hook, username, password);
-            if (!success) return;
+            if (!success) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to regenerate your Nexus Credentials!").send();
+                return;
+            }
 
             CommandUtil.EmbedReply.from(hook)
                     .success("Successfully changed your password!")
@@ -576,7 +579,7 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
                 return;
             }
@@ -648,7 +651,7 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not exist!").send();
                 return;
             }

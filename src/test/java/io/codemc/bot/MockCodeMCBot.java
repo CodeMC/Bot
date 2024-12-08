@@ -31,6 +31,8 @@ public class MockCodeMCBot extends CodeMCBot {
             if (file.exists()) {
                 String password = Files.readString(file.toPath());
                 configHandler.set(password, "nexus", "password");
+            } else {
+                logger.warn("Failed to read Nexus password from file: File does not exist");
             }
         } catch (IOException e) {
             logger.error("Failed to read Nexus password from file", e);
@@ -53,7 +55,7 @@ public class MockCodeMCBot extends CodeMCBot {
 
     public void create(String username, String job) {
         String link = "https://github.com/" + username + "/" + job;
-        if (JenkinsAPI.getJenkinsUser(username).isEmpty()) {
+        if (!JenkinsAPI.existsUser(username)) {
             String password = APIUtil.newPassword();
             APIUtil.createJenkinsJob(null, username, password, job, link, false);
             APIUtil.createNexus(null, username, password);

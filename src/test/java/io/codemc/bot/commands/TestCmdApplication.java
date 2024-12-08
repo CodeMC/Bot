@@ -64,8 +64,8 @@ public class TestCmdApplication {
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
         assertNull(DatabaseAPI.getUser(username));
 
         long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId()), (MessageEmbed[]) null);
@@ -91,12 +91,13 @@ public class TestCmdApplication {
         assertEquals(expected, MockJDA.getMessage(id));
 
         assertTrue(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertFalse(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNotNull(NexusAPI.getNexusUser(username));
+        assertTrue(JenkinsAPI.existsUser(username));
+        assertTrue(NexusAPI.exists(username));
         assertNotNull(DatabaseAPI.getUser(username));
         assertEquals(member.getIdLong(), DatabaseAPI.getUser(username).getDiscord());
 
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Message ID was not present!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("id", "abcd"), CommandUtil.embedError("Invalid message ID!"));
 
         assertTrue(JenkinsAPI.deleteUser(username));
         assertTrue(NexusAPI.deleteNexus(username));
@@ -122,8 +123,8 @@ public class TestCmdApplication {
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
         assertNull(DatabaseAPI.getUser(username));
 
         long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId(), "reason", "Denied"), (MessageEmbed[]) null);
@@ -145,11 +146,13 @@ public class TestCmdApplication {
         assertEquals(expected, MockJDA.getMessage(id));
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
         assertNull(DatabaseAPI.getUser(username));
     
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Message ID was not present!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("id", "abcd"), CommandUtil.embedError("Invalid message ID!"));
+        MockJDA.assertSlashCommandEvent(listener, Map.of("id", "0"), CommandUtil.embedError("Message ID or Reason were not present!"));
     }
 
 }

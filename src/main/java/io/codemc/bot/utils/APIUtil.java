@@ -44,7 +44,7 @@ public class APIUtil {
     }
 
     public static boolean createJenkinsJob(InteractionHook hook, String username, String password, String project, String repoLink, boolean trigger) {
-        if (!JenkinsAPI.getJenkinsUser(username).isEmpty()) {
+        if (JenkinsAPI.existsUser(username)) {
             if (hook != null)
                 CommandUtil.EmbedReply.from(hook)
                         .error("Jenkins User for " + username + " already exists!")

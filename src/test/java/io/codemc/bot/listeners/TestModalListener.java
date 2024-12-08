@@ -117,6 +117,47 @@ public class TestModalListener {
     }
 
     @Test
+    @DisplayName("Test Message")
+    public void testMessage() {
+        String channelId = REQUEST_CHANNEL.getId();
+        
+        // Test Post
+        Modal m1 = MockJDA.mockModal("message:post:" + channelId + ":true", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m1, GENERAL, Map.of("message", "test"), CommandUtil.embedSuccess("[Message sent!](<Jump URL>)"));
+
+        Modal m2 = MockJDA.mockModal("message:post:" + channelId + ":false", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m2, GENERAL, Map.of("message", "test"), CommandUtil.embedSuccess("[Message sent!](<Jump URL>)"));
+
+        // Test Edit
+        Message msg1 = MockJDA.mockMessage("Message", GENERAL);
+        Modal m3 = MockJDA.mockModal("message:edit:" + channelId + ":true:" + msg1.getId(), "Message");
+        MockJDA.assertModalInteractionEvent(listener, m3, GENERAL, Map.of("message", "test"), CommandUtil.embedSuccess("[Message edited!](<Jump URL>)"));
+
+        Message msg2 = MockJDA.mockMessage("Message", GENERAL);
+        Modal m4 = MockJDA.mockModal("message:edit:" + channelId + ":false:" + msg2.getId(), "Message");
+        MockJDA.assertModalInteractionEvent(listener, m4, GENERAL, Map.of("message", "test"), CommandUtil.embedSuccess("[Message edited!](<Jump URL>)"));
+
+        // Test Errors
+        Modal m5 = MockJDA.mockModal("message", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m5, GENERAL, Map.of(), CommandUtil.embedError(("Invalid Modal data. Expected `4+` arguments but received `1`!")));
+
+        Modal m6 = MockJDA.mockModal("message:post:abcd:true", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m6, GENERAL, Map.of(), CommandUtil.embedError("Received invalid Text Channel."));
+
+        Modal m7 = MockJDA.mockModal("message:post:" + channelId + ":true", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m7, GENERAL, Map.of(), CommandUtil.embedError("Received invalid Message to sent/edit."));
+
+        Modal m8 = MockJDA.mockModal("message:edit:" + channelId + ":true", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m8, GENERAL, Map.of("message", "test"), CommandUtil.embedError("Received invalid Modal data. Expected `>4` but got `=4`"));
+
+        Modal m9 = MockJDA.mockModal("message:edit:" + channelId + ":true:abcd", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m9, GENERAL, Map.of("message", "test"), CommandUtil.embedError("Received invalid message ID `abcd`."));
+
+        Modal m10 = MockJDA.mockModal("message:unknown:" + channelId + ":true", "Message");
+        MockJDA.assertModalInteractionEvent(listener, m10, GENERAL, Map.of("message", "test"), CommandUtil.embedError("Received Unknown Message type: `unknown`."));
+    }
+
+    @Test
     @DisplayName("Test ModalListener Errors")
     public void testModalListenerErrors() {
         Modal modal = MockJDA.mockModal("null", "null");

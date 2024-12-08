@@ -51,15 +51,15 @@ public class TestButtonListener {
         DatabaseAPI.removeUser(username);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
         assertNull(DatabaseAPI.getUser(username));
 
         MockJDA.assertButtonInteractionEvent(listener, message, Button.success("application:accept:" + username + ":Job", "Accept"), (MessageEmbed[]) null);
 
         assertTrue(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertFalse(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNotNull(NexusAPI.getNexusUser(username));
+        assertTrue(JenkinsAPI.existsUser(username));
+        assertTrue(NexusAPI.exists(username));
         assertNotNull(DatabaseAPI.getUser(username));
         assertEquals(member.getIdLong(), DatabaseAPI.getUser(username).getDiscord());
 
@@ -82,14 +82,14 @@ public class TestButtonListener {
         DatabaseAPI.removeUser(username);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
 
         MockJDA.assertButtonInteractionEvent(listener, message, Button.danger("application:deny:" + username + ":Job", "Deny"), (MessageEmbed[]) null);
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
-        assertTrue(JenkinsAPI.getJenkinsUser(username).isEmpty());
-        assertNull(NexusAPI.getNexusUser(username));
+        assertFalse(JenkinsAPI.existsUser(username));
+        assertFalse(NexusAPI.exists(username));
     }
 
     @Test

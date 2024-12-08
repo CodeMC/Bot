@@ -69,7 +69,7 @@ public class ModalListener extends ListenerAdapter{
                     return;
                 }
                 
-                if (!JenkinsAPI.getJenkinsUser(user).isEmpty()) {
+                if (JenkinsAPI.existsUser(user)) {
                     CommandUtil.EmbedReply.from(hook)
                             .error("A Jenkins User named '" + user + "' already exists!")
                             .send();
@@ -201,16 +201,24 @@ public class ModalListener extends ListenerAdapter{
                             if(asEmbed){
                                 message.editMessageEmbeds(CommandUtil.getEmbed().setDescription(text).build()).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.from(hook)
-                                        .error("Unable to edit message. Reason: " + e.getMessage())
-                                        .send()
+                                    e -> {
+                                        CommandUtil.EmbedReply.from(hook)
+                                            .error("Unable to edit message. Reason: " + e.getMessage())
+                                            .send();
+                                        
+                                        logger.error("Error while editing message", e);
+                                    }
                                 );
                             }else{
                                 message.editMessage(text).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.from(hook)
-                                        .error("Unable to edit message. Reason: " + e.getMessage())
-                                        .send()
+                                    e -> {
+                                        CommandUtil.EmbedReply.from(hook)
+                                            .error("Unable to edit message. Reason: " + e.getMessage())
+                                            .send();
+                                        
+                                        logger.error("Error while editing message", e);
+                                    }
                                 );
                             }
                         }

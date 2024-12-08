@@ -34,9 +34,7 @@ import java.util.List;
 public class CommandUtil{
     
     private static final Logger LOG = (Logger)LoggerFactory.getLogger(CommandUtil.class);
-    
-    public CommandUtil(){}
-    
+
     public static EmbedBuilder getEmbed(){
         return new EmbedBuilder().setColor(0x0172BA);
     }

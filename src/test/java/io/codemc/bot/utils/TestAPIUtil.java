@@ -60,11 +60,11 @@ public class TestAPIUtil {
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createNexus(h1, user1, p1));
-        assertNotNull(NexusAPI.getNexusUser(user1));
+        assertTrue(NexusAPI.exists(user1));
         assertNotNull(NexusAPI.getNexusRepository(user1));
 
         assertTrue(NexusAPI.deleteNexus(user1));
-        assertNull(NexusAPI.getNexusUser(user1));
+        assertFalse(NexusAPI.exists(user1));
         assertNull(NexusAPI.getNexusRepository(user1));
 
         String user2 = "TestNexus2";
@@ -73,11 +73,11 @@ public class TestAPIUtil {
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createNexus(h2, user2, p2));
-        assertNotNull(NexusAPI.getNexusUser(user2));
+        assertTrue(NexusAPI.exists(user2));
         assertNotNull(NexusAPI.getNexusRepository(user2));
 
         assertTrue(NexusAPI.deleteNexus(user2));
-        assertNull(NexusAPI.getNexusUser(user2));
+        assertFalse(NexusAPI.exists(user2));
         assertNull(NexusAPI.getNexusRepository(user2));
     }
 
@@ -91,13 +91,13 @@ public class TestAPIUtil {
         InteractionHook h1 = MockJDA.mockInteractionHook(u1, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createJenkinsJob(h1, user1, p1, j1, "https://github.com/gmitch215/SocketMC", false));
-        assertFalse(JenkinsAPI.getJenkinsUser(user1).isEmpty());
+        assertTrue(JenkinsAPI.existsUser(user1));
         assertNotNull(JenkinsAPI.getJobInfo(user1, j1));
 
         assertTrue(JenkinsAPI.deleteJob(user1, j1));
         assertNull(JenkinsAPI.getJobInfo(user1, j1));
         assertTrue(JenkinsAPI.deleteUser(user1));
-        assertTrue(JenkinsAPI.getJenkinsUser(user1).isEmpty());
+        assertFalse(JenkinsAPI.existsUser(user1));
 
         String user2 = "TestJenkins2";
         String j2 = "Job";
@@ -106,13 +106,13 @@ public class TestAPIUtil {
         InteractionHook h2 = MockJDA.mockInteractionHook(u2, MockJDA.REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
 
         assertTrue(APIUtil.createJenkinsJob(h2, user2, p2, j2, "https://github.com/CodeMC/Bot", false));
-        assertFalse(JenkinsAPI.getJenkinsUser(user2).isEmpty());
+        assertTrue(JenkinsAPI.existsUser(user2));
         assertNotNull(JenkinsAPI.getJobInfo(user2, j2));
 
         assertTrue(JenkinsAPI.deleteJob(user2, j2));
         assertNull(JenkinsAPI.getJobInfo(user2, j2));
         assertTrue(JenkinsAPI.deleteUser(user2));
-        assertTrue(JenkinsAPI.getJenkinsUser(user2).isEmpty());
+        assertFalse(JenkinsAPI.existsUser(user2));
 
         String user3 = "TestJenkins3";
         String j3 = "Job";

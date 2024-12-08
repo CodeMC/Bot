@@ -12,6 +12,8 @@ import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.InteractionType;
 
 public class TestCommandUtil {
 
@@ -53,6 +55,23 @@ public class TestCommandUtil {
         MessageEmbed m2 = r2.error("Error!").build();
 
         MockJDA.assertEmbed(m2, CommandUtil.embedError("Error!"), true);
+    }
+
+    @Test
+    @DisplayName("Test CommandUtil.EmbedReply#send")
+    public void testEmbedSend() {
+        Member member = MockJDA.mockMember("gmitch215");
+        InteractionHook h1 = MockJDA.mockInteractionHook(member, MockJDA.REQUEST_CHANNEL, InteractionType.COMMAND);
+        CommandUtil.EmbedReply<?> r1 = CommandUtil.EmbedReply.from(h1);
+        r1.success("Success!").send();
+        MockJDA.assertEmbeds(
+            List.of(CommandUtil.embedSuccess("Success!")),
+            MockJDA.getEmbeds(h1.getIdLong()),
+            true    
+        );
+
+        CommandUtil.EmbedReply<?> r2 = CommandUtil.EmbedReply.empty();
+        r2.error("Error!").send();
     }
 
 }
