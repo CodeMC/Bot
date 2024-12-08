@@ -619,7 +619,7 @@ public class CmdCodeMC extends BotCommand {
             APIUtil.createNexus(hook, username, password);
 
             CommandUtil.EmbedReply.from(hook).success("Successfully created user " + username + " and linked it to " + target.getUser().getEffectiveName() + "!").send();
-            LOGGER.info("Created user '" + username + "' in the Jenkins/Nexus services.");
+            LOGGER.info("Created user '{}' in the Jenkins/Nexus services.", username);
         }
     }
 
@@ -661,7 +661,7 @@ public class CmdCodeMC extends BotCommand {
             NexusAPI.deleteNexus(username);
 
             CommandUtil.EmbedReply.from(hook).success("Successfully deleted user " + username + "!").send();
-            LOGGER.info("Deleted user '" + username + "' from the Jenkins/Nexus services.");
+            LOGGER.info("Deleted user '{}' from the Jenkins/Nexus services.", username);
         }
     }
 }

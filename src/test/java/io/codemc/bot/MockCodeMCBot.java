@@ -13,7 +13,7 @@ import io.codemc.bot.utils.APIUtil;
 
 public class MockCodeMCBot extends CodeMCBot {
 
-    public static MockCodeMCBot INSTANCE = new MockCodeMCBot();
+    public static final MockCodeMCBot INSTANCE = new MockCodeMCBot();
 
     private MockCodeMCBot() {
         logger = LoggerFactory.getLogger(MockCodeMCBot.class);

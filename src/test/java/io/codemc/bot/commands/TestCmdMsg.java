@@ -2,6 +2,8 @@ package io.codemc.bot.commands;
 
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
+import io.codemc.bot.commands.CmdMsg.Edit;
+import io.codemc.bot.commands.CmdMsg.Post;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -9,13 +11,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static io.codemc.bot.MockJDA.GENERAL;
 import static org.junit.jupiter.api.Assertions.*;
-
-import io.codemc.bot.commands.CmdMsg.Post;
-import io.codemc.bot.commands.CmdMsg.Edit;
-
-import java.util.Map;
 
 public class TestCmdMsg {
 

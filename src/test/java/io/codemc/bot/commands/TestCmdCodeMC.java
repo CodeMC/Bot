@@ -1,38 +1,24 @@
 package io.codemc.bot.commands;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Map;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-
 import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
-import io.codemc.bot.commands.CmdCodeMC.ChangePassword;
-import io.codemc.bot.commands.CmdCodeMC.CreateUser;
-import io.codemc.bot.commands.CmdCodeMC.DeleteUser;
-import io.codemc.bot.commands.CmdCodeMC.Jenkins;
-import io.codemc.bot.commands.CmdCodeMC.Link;
-import io.codemc.bot.commands.CmdCodeMC.Nexus;
-import io.codemc.bot.commands.CmdCodeMC.Remove;
-import io.codemc.bot.commands.CmdCodeMC.Unlink;
-import io.codemc.bot.commands.CmdCodeMC.Validate;
+import io.codemc.bot.commands.CmdCodeMC.*;
 import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Member;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 public class TestCmdCodeMC {
 

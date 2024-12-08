@@ -116,7 +116,6 @@ public class CodeMCBot{
         if(configHandler.getLong("server") == -1L){
             logger.warn("Unable to retrieve Server ID. This value is required!");
             System.exit(1);
-            return;
         }
     }
 

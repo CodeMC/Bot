@@ -1,20 +1,5 @@
 package io.codemc.bot.commands;
 
-import static io.codemc.bot.MockJDA.AUTHOR;
-import static io.codemc.bot.MockJDA.REQUEST_CHANNEL;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
@@ -26,6 +11,16 @@ import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static io.codemc.bot.MockJDA.AUTHOR;
+import static io.codemc.bot.MockJDA.REQUEST_CHANNEL;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestCmdApplication {
     

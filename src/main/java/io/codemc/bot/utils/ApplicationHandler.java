@@ -114,7 +114,7 @@ public class ApplicationHandler{
             String user = userField.getValue();
             String repo = repoField.getValue();
             
-            String username = user.substring(1, user.indexOf("]"));;
+            String username = user.substring(1, user.indexOf("]"));
             String userLink = user.substring(user.indexOf("(") + 1, user.length() - 1);
             String repoName = repo.substring(1, repo.indexOf("]"));
             String repoLink = repo.substring(repo.indexOf("(") + 1, repo.length() - 1);
