@@ -29,12 +29,12 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ApplicationHandler{
 
@@ -65,7 +65,7 @@ public class ApplicationHandler{
                 CommandUtil.EmbedReply.from(hook).error("Provided Message does not have any embeds.").send();
                 return;
             }
-            
+
             MessageEmbed embed = embeds.get(0);
             if(embed.getFooter() == null || embed.getFields().isEmpty()){
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a Footer or any Embed Fields").send();
@@ -87,7 +87,7 @@ public class ApplicationHandler{
                 CommandUtil.EmbedReply.from(hook).error("Embed does not have a valid footer.").send();
                 return;
             }
-            
+
             hook.editOriginalFormat(
                 """
                 [2/5] Handling Join Request...
@@ -114,7 +114,7 @@ public class ApplicationHandler{
             String user = userField.getValue();
             String repo = repoField.getValue();
             
-            String username = user.substring(1, user.indexOf("]"));;
+            String username = user.substring(1, user.indexOf("]"));
             String userLink = user.substring(user.indexOf("(") + 1, user.length() - 1);
             String repoName = repo.substring(1, repo.indexOf("]"));
             String repoLink = repo.substring(repo.indexOf("(") + 1, repo.length() - 1);
@@ -166,10 +166,10 @@ public class ApplicationHandler{
             
             if(accepted){
                 String password = APIUtil.newPassword();
-                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, repoName, repoLink);
+                boolean jenkinsSuccess = APIUtil.createJenkinsJob(hook, username, password, repoName, repoLink, true);
                 boolean nexusSuccess = APIUtil.createNexus(hook, username, password);
                 
-                if(!jenkinsSuccess || ! nexusSuccess)
+                if(!jenkinsSuccess || !nexusSuccess)
                     return;
                 
                 if(member == null){
@@ -310,7 +310,8 @@ public class ApplicationHandler{
         });
     }
     
-    private static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
+    @VisibleForTesting
+    static MessageCreateData getMessage(CodeMCBot bot, String userId, String userLink, String repoLink, String str, User reviewer, boolean accepted){
         String msg = String.join("\n", bot.getConfigHandler().getStringList("messages", (accepted ? "accepted" : "denied")));
         
         MessageEmbed embed = new EmbedBuilder()

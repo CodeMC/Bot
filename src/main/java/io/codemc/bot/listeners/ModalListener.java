@@ -32,13 +32,10 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Instant;
 
 public class ModalListener extends ListenerAdapter{
     
@@ -72,7 +69,7 @@ public class ModalListener extends ListenerAdapter{
                     return;
                 }
                 
-                if (!JenkinsAPI.getJenkinsUser(user).isEmpty()) {
+                if (JenkinsAPI.existsUser(user)) {
                     CommandUtil.EmbedReply.from(hook)
                             .error("A Jenkins User named '" + user + "' already exists!")
                             .send();
@@ -103,14 +100,7 @@ public class ModalListener extends ListenerAdapter{
                 String repoLink = MarkdownUtil.maskedLink(repo, repoLinkValue);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                MessageEmbed embed = CommandUtil.getEmbed()
-                    .addField("User/Organisation:", userLink, true)
-                    .addField("Repository:", repoLink, true)
-                    .addField("Submitted by:", submitter, true)
-                    .addField("Description", description, false)
-                    .setFooter(event.getUser().getId())
-                    .setTimestamp(Instant.now())
-                    .build();
+                MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description, event.getUser().getId());
                 
                 requestChannel.sendMessageEmbeds(embed)
                     .setActionRow(
@@ -122,18 +112,20 @@ public class ModalListener extends ListenerAdapter{
                                 "[Request sent!](" + message.getJumpUrl() + ")")
                                 .send();
                             
-                            RestAction.allOf(
-                                message.createThreadChannel("Access Request - " + event.getUser().getName()),
-                                message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)),
-                                message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false))
-                            ).queue();
+                            message.createThreadChannel("Access Request - " + event.getUser().getName()).queue();
+                            message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)).queue();
+                            message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false)).queue();
                             
                             logger.info("[Access Request] User {} requested access to the CI.", event.getUser().getEffectiveName());
                         },
-                        e -> CommandUtil.EmbedReply.from(hook).error(
-                            "Error while submitting request!",
-                            "Reported Error: " + e.getMessage()
-                        ).send()
+                        e -> {
+                            CommandUtil.EmbedReply.from(hook).error(
+                                "Error while submitting request!",
+                                "Reported Error: " + e.getMessage()
+                            ).send();
+
+                            logger.error("Error while submitting request", e);
+                        }
                 );
             });
             
@@ -209,16 +201,24 @@ public class ModalListener extends ListenerAdapter{
                             if(asEmbed){
                                 message.editMessageEmbeds(CommandUtil.getEmbed().setDescription(text).build()).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.from(hook)
-                                        .error("Unable to edit message. Reason: " + e.getMessage())
-                                        .send()
+                                    e -> {
+                                        CommandUtil.EmbedReply.from(hook)
+                                            .error("Unable to edit message. Reason: " + e.getMessage())
+                                            .send();
+                                        
+                                        logger.error("Error while editing message", e);
+                                    }
                                 );
                             }else{
                                 message.editMessage(text).setReplace(true).queue(
                                     m -> sendConfirmation(hook, m, true),
-                                    e -> CommandUtil.EmbedReply.from(hook)
-                                        .error("Unable to edit message. Reason: " + e.getMessage())
-                                        .send()
+                                    e -> {
+                                        CommandUtil.EmbedReply.from(hook)
+                                            .error("Unable to edit message. Reason: " + e.getMessage())
+                                            .send();
+                                        
+                                        logger.error("Error while editing message", e);
+                                    }
                                 );
                             }
                         }

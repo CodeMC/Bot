@@ -158,4 +158,4 @@ build/
 .vscode/
 
 # Copied configuration
-config.json
+/config.json

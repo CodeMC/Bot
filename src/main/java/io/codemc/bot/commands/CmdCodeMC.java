@@ -41,6 +41,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CmdCodeMC extends BotCommand {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(CmdCodeMC.class);
 
     public CmdCodeMC(CodeMCBot bot) {
         super(bot);
@@ -80,7 +82,8 @@ public class CmdCodeMC extends BotCommand {
     public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
     }
 
-    private static class Jenkins extends BotCommand {
+    @VisibleForTesting
+    static class Jenkins extends BotCommand {
 
         public Jenkins(CodeMCBot bot) {
             super(bot);
@@ -90,7 +93,6 @@ public class CmdCodeMC extends BotCommand {
 
             this.options = List.of(
                     new OptionData(OptionType.STRING, "job", "The Jenkins Job Location to fetch. I.e. \"CodeMC/API\".").setRequired(true)
-
             );
         }
 
@@ -106,15 +108,23 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
+            MessageEmbed embed = createInfoEmbed(job);
+            if (embed == null) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Jenkins Job Info!").send();
+                return;
+            }
+
+            hook.editOriginalEmbeds(embed).queue();
+        }
+
+        @VisibleForTesting
+        MessageEmbed createInfoEmbed(String job) {
             String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url");
             String username = job.split("/")[0];
             String jobName = job.split("/")[1];
 
             JenkinsJob info = JenkinsAPI.getJobInfo(username, jobName);
-            if (info == null) {
-                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Jenkins Job Info!").send();
-                return;
-            }
+            if (info == null) return null;
 
             EmbedBuilder embed = CommandUtil.getEmbed()
                     .setTitle(job, info.getUrl())
@@ -133,12 +143,13 @@ public class CmdCodeMC extends BotCommand {
 
             if (info.getLastStableBuild() != null)
                 embed.addField("Last Stable Build", info.getLastStableBuild().toString(), false);
-
-            hook.editOriginalEmbeds(embed.build()).queue();
+            
+            return embed.build();
         }
     }
 
-    private static class Nexus extends BotCommand {
+    @VisibleForTesting
+    static class Nexus extends BotCommand {
 
         public Nexus(CodeMCBot bot) {
             super(bot);
@@ -164,14 +175,22 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
+            MessageEmbed embed = createInfoEmbed(user);
+            if (embed == null) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
+                return;
+            }
+
+            hook.sendMessageEmbeds(embed).queue();
+        }
+
+        @VisibleForTesting
+        MessageEmbed createInfoEmbed(String user) {
             String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
             String repository = user.toLowerCase();
 
             JsonObject info = NexusAPI.getNexusRepository(repository);
-            if (info == null) {
-                CommandUtil.EmbedReply.from(hook).error("Failed to fetch Nexus Repository Info!").send();
-                return;
-            }
+            if (info == null) return null;
 
             String format = ((JsonPrimitive) info.get("format")).getContent();
             String type = ((JsonPrimitive) info.get("type")).getContent();
@@ -183,12 +202,13 @@ public class CmdCodeMC extends BotCommand {
                     .addField("Type", type, true)
                     .setTimestamp(Instant.now())
                     .build();
-
-            hook.sendMessageEmbeds(embed).queue();
+            
+            return embed;
         }
     }
 
-    private static class Remove extends BotCommand {
+    @VisibleForTesting
+    static class Remove extends BotCommand {
 
         public Remove(CodeMCBot bot) {
             super(bot);
@@ -216,7 +236,7 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
             }
@@ -234,6 +254,10 @@ public class CmdCodeMC extends BotCommand {
 
             long id = dbUser.getDiscord();
             Member user = guild.getMemberById(id);
+            if (user == null) {
+                CommandUtil.EmbedReply.from(hook).success("Successfully removed " + username + " from the CodeMC Services!").send();
+                return;
+            }
 
             Role authorRole = guild.getRoleById(bot.getConfigHandler().getLong("author_role"));
             if (authorRole == null) {
@@ -245,7 +269,7 @@ public class CmdCodeMC extends BotCommand {
                     .anyMatch(role -> role.getIdLong() == authorRole.getIdLong());
 
             if (!hasAuthor) {
-                CommandUtil.EmbedReply.from(hook).error("The user is not an Author!").send();
+                CommandUtil.EmbedReply.from(hook).error("User was deleted, but is not an Author!").send();
                 return;
             }
 
@@ -266,7 +290,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Validate extends BotCommand{
+    @VisibleForTesting
+    static class Validate extends BotCommand{
 
         public Validate(CodeMCBot bot) {
             super(bot);
@@ -340,7 +365,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Link extends BotCommand{
+    @VisibleForTesting
+    static class Link extends BotCommand{
 
         public Link(CodeMCBot bot) {
             super(bot);
@@ -364,7 +390,12 @@ public class CmdCodeMC extends BotCommand {
             String username = event.getOption("username", null, OptionMapping::getAsString);
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Jenkins User provided!").send();
+                return;
+            }
+
+            if (!JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("The user does not have a Jenkins account!").send();
                 return;
             }
@@ -396,7 +427,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class Unlink extends BotCommand {
+    @VisibleForTesting
+    static class Unlink extends BotCommand {
 
         public Unlink(CodeMCBot bot) {
             super(bot);
@@ -431,6 +463,14 @@ public class CmdCodeMC extends BotCommand {
                     .filter(user -> userTarget == null || user.equals(userTarget))
                     .findFirst()
                     .orElse(null);
+            
+            if (username == null) {
+                if (userTarget == null)
+                    CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
+                else
+                    CommandUtil.EmbedReply.from(hook).error("The user is not linked to the specified Jenkins/Nexus account!").send();
+                return;
+            }
 
             if (DatabaseAPI.getUser(username) == null) {
                 CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
@@ -443,7 +483,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class ChangePassword extends BotCommand {
+    @VisibleForTesting
+    static class ChangePassword extends BotCommand {
 
         public ChangePassword(CodeMCBot bot) {
             super(bot);
@@ -490,14 +531,17 @@ public class CmdCodeMC extends BotCommand {
                 return;
             }
 
-            if (JenkinsAPI.getJenkinsUser(username).isBlank()) {
-                CommandUtil.EmbedReply.from(hook).error("This user does not have a Jenkins account!").send();
+            if (!JenkinsAPI.existsUser(username)) {
+                CommandUtil.EmbedReply.from(hook).error("You do not have a Jenkins account!").send();
                 return;
             }
 
             String password = APIUtil.newPassword();
             boolean success = APIUtil.changePassword(hook, username, password);
-            if (!success) return;
+            if (!success) {
+                CommandUtil.EmbedReply.from(hook).error("Failed to regenerate your Nexus Credentials!").send();
+                return;
+            }
 
             CommandUtil.EmbedReply.from(hook)
                     .success("Successfully changed your password!")
@@ -505,7 +549,8 @@ public class CmdCodeMC extends BotCommand {
         }
     }
 
-    private static class CreateUser extends BotCommand{
+    @VisibleForTesting
+    static class CreateUser extends BotCommand{
 
         public CreateUser(CodeMCBot bot) {
             super(bot);
@@ -529,7 +574,12 @@ public class CmdCodeMC extends BotCommand {
             String username = event.getOption("username", null, OptionMapping::getAsString);
             Member target = event.getOption("discord", null, OptionMapping::getAsMember);
 
-            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Username provided!").send();
+                return;
+            }
+
+            if (JenkinsAPI.existsUser(username)) {
                 CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
                 return;
             }
@@ -569,11 +619,12 @@ public class CmdCodeMC extends BotCommand {
             APIUtil.createNexus(hook, username, password);
 
             CommandUtil.EmbedReply.from(hook).success("Successfully created user " + username + " and linked it to " + target.getUser().getEffectiveName() + "!").send();
-            LOGGER.info("Created user '" + username + "' in the Jenkins/Nexus services.");
+            LOGGER.info("Created user '{}' in the Jenkins/Nexus services.", username);
         }
     }
 
-    private static class DeleteUser extends BotCommand{
+    @VisibleForTesting
+    static class DeleteUser extends BotCommand{
 
         public DeleteUser(CodeMCBot bot) {
             super(bot);
@@ -595,8 +646,13 @@ public class CmdCodeMC extends BotCommand {
         public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
             String username = event.getOption("username", null, OptionMapping::getAsString);
 
-            if (!JenkinsAPI.getJenkinsUser(username).isBlank()) {
-                CommandUtil.EmbedReply.from(hook).error("A user with that username already exists.").send();
+            if (username == null || username.isEmpty()) {
+                CommandUtil.EmbedReply.from(hook).error("Invalid Username provided!").send();
+                return;
+            }
+
+            if (!JenkinsAPI.existsUser(username)) {
+                CommandUtil.EmbedReply.from(hook).error("The user does not exist!").send();
                 return;
             }
 
@@ -605,7 +661,7 @@ public class CmdCodeMC extends BotCommand {
             NexusAPI.deleteNexus(username);
 
             CommandUtil.EmbedReply.from(hook).success("Successfully deleted user " + username + "!").send();
-            LOGGER.info("Deleted user '" + username + "' from the Jenkins/Nexus services.");
+            LOGGER.info("Deleted user '{}' from the Jenkins/Nexus services.", username);
         }
     }
 }

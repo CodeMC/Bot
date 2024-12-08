@@ -20,6 +20,7 @@ plugins {
     id "java"
     id "application"
     id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "jacoco"
 }
 
 group 'io.codemc'
@@ -34,6 +35,7 @@ repositories {
     maven { url = 'https://repo.codemc.io/repository/codemc' }
     maven { url = 'https://repo.codemc.io/repository/codemc' }
     maven { url = 'https://m2.chew.pro/releases' }
+    maven { url = 'https://m2.coly.dev/releases' }
 }
 
 dependencies {
@@ -45,12 +47,47 @@ dependencies {
     implementation group: 'pw.chew', name: 'jda-chewtils-command', version: '2.0'
     implementation group: 'org.spongepowered', name: 'configurate-gson', version: '4.1.2'
 
-    implementation group: 'io.codemc.api', name: 'codemc-api', version: '1.1.1'
+    implementation group: 'io.codemc.api', name: 'codemc-api', version: '1.2.0'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.9.0'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.7.3'
     implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.1'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.56.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.56.0'
+
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.11.3'
+    testImplementation group: 'dev.coly', name: 'JDATesting', version: '0.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.14.2'
+}
+
+tasks {
+    clean {
+        delete "logs"
+    }
+
+    test {
+        useJUnitPlatform()
+
+        testLogging {
+            events "passed", "skipped", "failed"
+            showStandardStreams = true
+        }
+
+        finalizedBy jacocoTestReport
+    }
+
+    jacocoTestReport {
+        dependsOn test
+
+        reports {
+            csv.required = false
+
+            xml.required = true
+            xml.outputLocation = layout.buildDirectory.file("jacoco.xml").get().asFile
+
+            html.required = true
+            html.outputLocation = layout.buildDirectory.dir("jacocoHtml").get().asFile
+        }
+    }
 }
 
 artifacts {
