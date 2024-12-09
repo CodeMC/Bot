@@ -51,7 +51,7 @@ dependencies {
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.9.0'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.7.3'
     implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.1'
-    implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.56.0'
+    implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.57.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.56.0'
 
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.11.3'
