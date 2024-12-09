@@ -1,0 +1,84 @@
+{
+  "bot_token": "TOKEN",
+  "server": 405915656039694336,
+  "channels": {
+    "request_access": 1233971297185431582,
+    "accepted_requests": 784119059138478080,
+    "rejected_requests": 800423355551449098
+  },
+  "author_role": 405918641859723294,
+  "allowed_roles": {
+    "applications": {
+      "accept": [
+        405917902865170453,
+        659568973079379971,
+        1233971297185431582
+      ],
+      "deny": [
+        405917902865170453,
+        659568973079379971,
+        1233971297185431582
+      ]
+    },
+    "commands": {
+      "application": [
+        405917902865170453,
+        659568973079379971,
+        1233971297185431582
+      ],
+      "codemc": [
+        405917902865170453,
+        659568973079379971
+      ],
+      "disable": [
+        405917902865170453
+      ],
+      "msg": [
+        405917902865170453
+      ],
+      "reload": [
+        405917902865170453
+      ]
+    }
+  },
+  "users": {
+    "owner": 204232208049766400,
+    "co_owners": [
+      143088571656437760,
+      282975975954710528
+    ]
+  },
+  "messages": {
+    "accepted": [
+      "Your request has been **accepted**!",
+      "You will now be able to login with your GitHub Account and access the approved Repository on the CI.",
+      "",
+      "Remember to [visit our Documentation](https://docs.codemc.io) and [Read our FAQ](https://docs.codemc.io/faq) to learn how to setup automatic builds!"
+    ],
+    "denied": [
+      "Your request has been **rejected**!",
+      "The reason for the denial is stated below.",
+      "",
+      "You may re-apply unless mentioned otherwise in the Reason."
+    ]
+  },
+  "jenkins": {
+    "url": "http://localhost:8080",
+    "username": "admin",
+    "token": "00000000000000000000000000000000"
+  },
+  "nexus": {
+    "url": "http://localhost:8081",
+    "username": "admin",
+    "password": "unset"
+  },
+  "database": {
+    "service": "mariadb",
+    "host": "localhost",
+    "port": 3306,
+    "database": "test",
+    "username": "admin",
+    "password": "password"
+  },
+  "github": "unset"
+}

@@ -36,12 +36,14 @@ public class ConfigHandler{
     
     private final Logger logger = LoggerFactory.getLogger(ConfigHandler.class);
     private final File file = new File("./config.json");
+    private boolean loaded = false;
     
     private ConfigurationNode node = null;
     
     public ConfigHandler(){}
     
     public boolean loadConfig(){
+        if (loaded) return reloadConfig();
         logger.info("Loading config.json...");
         
         if(!file.exists()){
@@ -59,6 +61,7 @@ public class ConfigHandler{
             }
         }
         
+        loaded = true;
         return reloadConfig();
     }
     
@@ -100,6 +103,14 @@ public class ConfigHandler{
             return node.node(path).getList(String.class);
         }catch(SerializationException ex){
             return Collections.emptyList();
+        }
+    }
+
+    public void set(Object value, Object... path){
+        try{
+            node.node(path).set(value);
+        }catch(SerializationException ex){
+            logger.error("Unable to set value in Configuration!", ex);
         }
     }
 }

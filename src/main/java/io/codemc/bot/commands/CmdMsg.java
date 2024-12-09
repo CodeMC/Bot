@@ -25,7 +25,6 @@ import io.codemc.bot.utils.CommandUtil;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -38,6 +37,8 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.util.Arrays;
+
+import org.jetbrains.annotations.VisibleForTesting;
 
 public class CmdMsg extends BotCommand{
     
@@ -61,7 +62,8 @@ public class CmdMsg extends BotCommand{
     @Override
     public void withModalReply(SlashCommandEvent event){}
     
-    private static class Post extends BotCommand{
+    @VisibleForTesting
+    static class Post extends BotCommand{
         
         public Post(CodeMCBot bot){
             super(bot);
@@ -96,7 +98,7 @@ public class CmdMsg extends BotCommand{
             }
             
             TextInput input = TextInput.create("message", "Message", TextInputStyle.PARAGRAPH)
-                .setMaxLength(asEmbed ? MessageEmbed.DESCRIPTION_MAX_LENGTH : Message.MAX_CONTENT_LENGTH)
+                .setMaxLength(asEmbed ? TextInput.MAX_VALUE_LENGTH : Message.MAX_CONTENT_LENGTH)
                 .setRequired(true)
                 .build();
             
@@ -108,7 +110,8 @@ public class CmdMsg extends BotCommand{
         }
     }
     
-    private static class Edit extends BotCommand{
+    @VisibleForTesting
+    static class Edit extends BotCommand{
         
         public Edit(CodeMCBot bot){
             super(bot);
