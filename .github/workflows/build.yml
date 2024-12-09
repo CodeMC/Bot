@@ -46,6 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    permissions:
+      checks: write
+      pull-requests: write
+
     name: Gradle Test
     steps:
       - uses: actions/checkout@v4
