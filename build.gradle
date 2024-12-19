@@ -54,7 +54,7 @@ dependencies {
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.57.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.57.0'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.11.3'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.11.4'
     testImplementation group: 'dev.coly', name: 'JDATesting', version: '0.7.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.14.2'
 }
