@@ -105,7 +105,7 @@ public class TestApplicationHandler {
         );
 
         InteractionHook h2 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
-        MessageEmbed e2 = CommandUtil.getEmbed().build();
+        MessageEmbed e2 = CommandUtil.getEmbed().setTitle("A").build();
         Message m2 = MockJDA.mockMessage("", List.of(e2), REQUEST_CHANNEL);
 
         ApplicationHandler.handle(
