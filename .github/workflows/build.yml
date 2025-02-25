@@ -72,15 +72,8 @@ jobs:
         run: |
           rm -rf /tmp/admin.password
 
-          docker stop jenkins-rest
-          docker rm jenkins-rest
-
-          docker stop nexus-rest
-          docker rm nexus-rest
-          
-          docker stop mariadb
-          docker rm mariadb
-          
+          docker stop jenkins-rest nexus-rest mariadb
+          docker rm jenkins-rest nexus-rest mariadb 
           docker network rm codemc
       - name: Archive Test Reports
         uses: actions/upload-artifact@v4
