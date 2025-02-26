@@ -55,8 +55,9 @@ public class TestCmdApplication {
         String username = "TestApplicationAccept";
         Member member = MockJDA.mockMember(username);
         
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.existsUser(username));
@@ -67,22 +68,20 @@ public class TestCmdApplication {
 
         String expected = String.format("""
             [5/5] Handling Join Request...
-            - [<:like:935126958193405962>] Message retrieved!
-            - [<:like:935126958193405962>] Message validated!
-              - Embed found!
-              - Found User ID `%s`.
-              - User and Repository Link found and validated!
+            - [<:like:935126958193405962>] Request retrieved!
+                - Found User ID `%s`.
+                - User and Repository Link found and validated!
             - [<:like:935126958193405962>] `accepted-requests` channel found!
             - [<:like:935126958193405962>] Join Request removed!
-              - Thread archived!
-              - Request Message deleted!
+                - Thread archived!
+                - Request Message deleted!
             - [<:like:935126958193405962>] Gave User Role!
-              - Found Author Role!
-              - Applied Author Role to User!
+                - Found Author Role!
+                - Applied Author Role to User!
             
             **Successfully accepted Join Request of user %s!**
             """, member.getId(), member.getUser().getEffectiveName());
-
+        
         assertEquals(expected, MockJDA.getMessage(id));
 
         assertTrue(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
@@ -97,6 +96,7 @@ public class TestCmdApplication {
         assertTrue(JenkinsAPI.deleteUser(username));
         assertTrue(NexusAPI.deleteNexus(username));
         assertEquals(1, DatabaseAPI.removeUser(username));
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
     @Test
@@ -114,8 +114,9 @@ public class TestCmdApplication {
         String username = "TestApplicationDeny";
         Member member = MockJDA.mockMember(username);
 
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.existsUser(username));
@@ -124,17 +125,15 @@ public class TestCmdApplication {
 
         long id = MockJDA.assertSlashCommandEvent(listener, Map.of("id", message.getId(), "reason", "Denied"), (MessageEmbed[]) null);
 
-        String expected = String.format(                        """
+        String expected = String.format("""
             [<:like:935126958193405962>] Handling of Join Request complete!
-            - [<:like:935126958193405962>] Message retrieved!
-            - [<:like:935126958193405962>] Message validated!
-              - Embed found!
-              - Found User ID `%s`.
-              - User and Repository Link found and validated!
+            - [<:like:935126958193405962>] Request retrieved!
+                - Found User ID `%s`.
+                - User and Repository found and validated!
             - [<:like:935126958193405962>] `rejected-requests` channel found!
             - [<:like:935126958193405962>] Join Request removed!
-              - Thread archived!
-              - Request Message deleted!
+                - Thread archived!
+                - Request Message deleted!
             - [<:like:935126958193405962>] Finished rejecting join request of %s!
             """, member.getId(), member.getUser().getEffectiveName());
 
@@ -148,6 +147,8 @@ public class TestCmdApplication {
         MockJDA.assertSlashCommandEvent(listener, Map.of(), CommandUtil.embedError("Message ID was not present!"));
         MockJDA.assertSlashCommandEvent(listener, Map.of("id", "abcd"), CommandUtil.embedError("Invalid message ID!"));
         MockJDA.assertSlashCommandEvent(listener, Map.of("id", "0"), CommandUtil.embedError("Message ID or Reason were not present!"));
+    
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
 }

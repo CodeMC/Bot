@@ -38,8 +38,9 @@ public class TestButtonListener {
         String username = "TestButtonListenerAccept";
         Member member = MockJDA.mockMember(username);
         
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         JenkinsAPI.deleteUser(username);
         NexusAPI.deleteNexus(username);
@@ -61,6 +62,7 @@ public class TestButtonListener {
         assertTrue(JenkinsAPI.deleteUser(username));
         assertTrue(NexusAPI.deleteNexus(username));
         assertEquals(1, DatabaseAPI.removeUser(username));
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
     @Test
@@ -69,8 +71,9 @@ public class TestButtonListener {
         String username = "TestButtonListenerDeny";
         Member member = MockJDA.mockMember(username);
 
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         JenkinsAPI.deleteUser(username);
         NexusAPI.deleteNexus(username);
@@ -85,6 +88,7 @@ public class TestButtonListener {
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.existsUser(username));
         assertFalse(NexusAPI.exists(username));
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
     @Test

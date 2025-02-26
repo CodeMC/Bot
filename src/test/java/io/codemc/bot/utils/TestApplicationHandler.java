@@ -28,8 +28,9 @@ public class TestApplicationHandler {
         Member member = MockJDA.mockMember(username);
         InteractionHook hook = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
         
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.existsUser(username));
@@ -41,7 +42,7 @@ public class TestApplicationHandler {
         );
 
         String jenkinsUrl = MockCodeMCBot.INSTANCE.getConfigHandler().getString("jenkins", "url") + "/job/" + username + "/job/Job/";
-        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), "userLink", "repoLink", jenkinsUrl, SELF.getUser(), true);
+        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), "https://github.com/TestApplicationHandlerAccepted", "https://github.com/TestApplicationHandlerAccepted/Job", jenkinsUrl, SELF.getUser(), true);
         String content = MockJDA.getLatestMessage(ACCEPTED_CHANNEL);
         List<MessageEmbed> embeds = MockJDA.getLatestEmbeds(ACCEPTED_CHANNEL);
 
@@ -57,6 +58,7 @@ public class TestApplicationHandler {
         assertTrue(JenkinsAPI.deleteUser(username));
         assertTrue(NexusAPI.deleteNexus(username));
         assertEquals(1, DatabaseAPI.removeUser(username));
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
     @Test
@@ -66,8 +68,9 @@ public class TestApplicationHandler {
         Member member = MockJDA.mockMember(username);
         InteractionHook hook = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
         
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
 
         assertFalse(CommandUtil.hasRole(member, List.of(AUTHOR.getIdLong())));
         assertFalse(JenkinsAPI.existsUser(username));
@@ -77,8 +80,10 @@ public class TestApplicationHandler {
         ApplicationHandler.handle(
             MockCodeMCBot.INSTANCE, hook, GUILD, message.getIdLong(), "Denied", false
         );
-
-        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), "userLink", "repoLink", "Denied", SELF.getUser(), false);
+        
+        String userLink = "https://github.com/" + username;
+        String repoLink = "https://github.com/" + username + "/Job";
+        MessageCreateData expected = ApplicationHandler.getMessage(MockCodeMCBot.INSTANCE, member.getId(), userLink, repoLink, "Denied", SELF.getUser(), false);
         String content = MockJDA.getLatestMessage(REJECTED_CHANNEL);
         List<MessageEmbed> embeds = MockJDA.getLatestEmbeds(REJECTED_CHANNEL);
 
@@ -89,6 +94,8 @@ public class TestApplicationHandler {
         assertFalse(JenkinsAPI.existsUser(username));
         assertFalse(NexusAPI.exists(username));
         assertNull(DatabaseAPI.getUser(username));
+
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
     }
 
     @Test
@@ -101,41 +108,41 @@ public class TestApplicationHandler {
             MockCodeMCBot.INSTANCE, h1, GUILD, m1.getIdLong(), null, true
         );
         assertEmbeds(
-            List.of(CommandUtil.embedError("Provided Message does not have any embeds.")), MockJDA.getEmbeds(h1.getIdLong()), true
+            List.of(CommandUtil.embedError("Request not found in Database.")), MockJDA.getEmbeds(h1.getIdLong()), true
         );
 
         InteractionHook h2 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
-        MessageEmbed e2 = CommandUtil.getEmbed().setTitle("A").build();
-        Message m2 = MockJDA.mockMessage("", List.of(e2), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(123, 0, "", "");
 
         ApplicationHandler.handle(
-            MockCodeMCBot.INSTANCE, h2, GUILD, m2.getIdLong(), null, true
+            MockCodeMCBot.INSTANCE, h2, GUILD, 123, null, true
         );
         assertEmbeds(
-            List.of(CommandUtil.embedError("Embed does not have a Footer or any Embed Fields")), MockJDA.getEmbeds(h2.getIdLong()), true
+            List.of(CommandUtil.embedError("Request does not have a valid user.")), MockJDA.getEmbeds(h2.getIdLong()), true
         );
+        DatabaseAPI.removeRequest(123);
 
         InteractionHook h3 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
-        MessageEmbed e3 = CommandUtil.getEmbed().setFooter(" ").addField("null", "null", true).build();
-        Message m3 = MockJDA.mockMessage("", List.of(e3), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(1, 1, "user", "");
 
         ApplicationHandler.handle(
-            MockCodeMCBot.INSTANCE, h3, GUILD, m3.getIdLong(), null, true
+            MockCodeMCBot.INSTANCE, h3, GUILD, 1, null, true
         );
         assertEmbeds(
-            List.of(CommandUtil.embedError("Embed does not have a valid footer.")), MockJDA.getEmbeds(h3.getIdLong()), true
+            List.of(CommandUtil.embedError("Database Request is missing values.")), MockJDA.getEmbeds(h3.getIdLong()), true
         );
+        DatabaseAPI.removeRequest(1);
 
         InteractionHook h4 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
-        MessageEmbed e4 = CommandUtil.getEmbed().setFooter("id").addField("null", "null", true).build();
-        Message m4 = MockJDA.mockMessage("", List.of(e4), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(2, 2, "", "job");
 
         ApplicationHandler.handle(
-            MockCodeMCBot.INSTANCE, h4, GUILD, m4.getIdLong(), null, true
+            MockCodeMCBot.INSTANCE, h4, GUILD, 2, null, true
         );
         assertEmbeds(
-            List.of(CommandUtil.embedError("Embed does not have all valid Fields.")), MockJDA.getEmbeds(h4.getIdLong()), true
+            List.of(CommandUtil.embedError("Database Request is missing values.")), MockJDA.getEmbeds(h3.getIdLong()), true
         );
+        DatabaseAPI.removeRequest(2);
     }
 
 }

@@ -1,5 +1,6 @@
 package io.codemc.bot.listeners;
 
+import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
@@ -29,7 +30,6 @@ public class TestModalListener {
     public static void init() {
         listener = new ModalListener(MockCodeMCBot.INSTANCE);
     }
-
     
     @Test
     @DisplayName("Test Submit")
@@ -80,10 +80,12 @@ public class TestModalListener {
         String username = "TestModalApplicationDeny";
         Member member = MockJDA.mockMember(username);
 
-        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description", member.getId());
-        
+        MessageEmbed embed = CommandUtil.requestEmbed("[" + username + "](userLink)", "[Job](repoLink)", member.getAsMention(), "description");
+
         Message message = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
         Message message2 = MockJDA.mockMessage("", List.of(embed), REQUEST_CHANNEL);
+        DatabaseAPI.createRequest(message.getIdLong(), member.getIdLong(), username, "Job");
+        DatabaseAPI.createRequest(message2.getIdLong(), member.getIdLong(), username, "Job");
 
         Modal m1 = MockJDA.mockModal("deny_application:" + message.getId(), "Deny Application");
         Modal m2 = MockJDA.mockModal("deny_application:" + message2.getId(), "Deny Application");
@@ -93,15 +95,13 @@ public class TestModalListener {
 
         String expected = String.format("""
             [<:like:935126958193405962>] Handling of Join Request complete!
-            - [<:like:935126958193405962>] Message retrieved!
-            - [<:like:935126958193405962>] Message validated!
-              - Embed found!
-              - Found User ID `%s`.
-              - User and Repository Link found and validated!
+            - [<:like:935126958193405962>] Request retrieved!
+                - Found User ID `%s`.
+                - User and Repository found and validated!
             - [<:like:935126958193405962>] `rejected-requests` channel found!
             - [<:like:935126958193405962>] Join Request removed!
-              - Thread archived!
-              - Request Message deleted!
+                - Thread archived!
+                - Request Message deleted!
             - [<:like:935126958193405962>] Finished rejecting join request of %s!
             """, member.getId(), member.getUser().getEffectiveName());
 
@@ -113,6 +113,9 @@ public class TestModalListener {
 
         Modal m4 = MockJDA.mockModal("deny_application:abcd", "Deny Application");
         MockJDA.assertModalInteractionEvent(listener, m4, REQUEST_CHANNEL, Map.of(), CommandUtil.embedError("Received invalid message ID: abcd"));
+    
+        assertEquals(1, DatabaseAPI.removeRequest(message.getIdLong()));
+        assertEquals(1, DatabaseAPI.removeRequest(message2.getIdLong()));
     }
 
     @Test
