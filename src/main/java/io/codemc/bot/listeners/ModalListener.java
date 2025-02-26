@@ -18,6 +18,7 @@
 
 package io.codemc.bot.listeners;
 
+import io.codemc.api.database.DatabaseAPI;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.ApplicationHandler;
@@ -100,7 +101,7 @@ public class ModalListener extends ListenerAdapter{
                 String repoLink = MarkdownUtil.maskedLink(repo, repoLinkValue);
                 String submitter = String.format("`%s` (%s)", event.getUser().getEffectiveName(), event.getUser().getAsMention());
                 
-                MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description, event.getUser().getId());
+                MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description);
                 
                 requestChannel.sendMessageEmbeds(embed)
                     .setActionRow(
@@ -116,6 +117,8 @@ public class ModalListener extends ListenerAdapter{
                             message.addReaction(Emoji.fromCustom("like", 935126958193405962L, false)).queue();
                             message.addReaction(Emoji.fromCustom("dislike", 935126958235344927L, false)).queue();
                             
+                            DatabaseAPI.createRequest(message.getIdLong(), event.getUser().getIdLong(), user, repo);
+
                             logger.info("[Access Request] User {} requested access to the CI.", event.getUser().getEffectiveName());
                         },
                         e -> {
