@@ -49,12 +49,12 @@ dependencies {
 
     implementation group: 'io.codemc.api', name: 'codemc-api', version: '1.2.2'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.10.2'
-    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.8.1'
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.9.0'
     implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.3'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.61.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.61.0'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.13.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.13.2'
     testImplementation group: 'org.junit.platform', name: 'junit-platform-launcher'
     testImplementation group: 'dev.coly', name: 'JDATesting', version: '0.7.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.18.0'
