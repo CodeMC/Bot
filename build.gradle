@@ -50,7 +50,7 @@ dependencies {
     implementation group: 'io.codemc.api', name: 'codemc-api', version: '1.2.2'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.10.2'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.9.0'
-    implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.4'
+    implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.5'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.61.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.61.0'
 
