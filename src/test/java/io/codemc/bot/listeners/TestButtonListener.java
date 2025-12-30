@@ -6,11 +6,11 @@ import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.MockCodeMCBot;
 import io.codemc.bot.MockJDA;
 import io.codemc.bot.utils.CommandUtil;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,7 +101,7 @@ public class TestButtonListener {
 
         Message m2 = MockJDA.mockMessage(null, REQUEST_CHANNEL);
         Button b2 = mock(Button.class);
-        when(b2.getId()).thenReturn(null);
+        when(b2.getCustomId()).thenReturn(null);
         ButtonInteractionEvent e2 = MockJDA.mockButtonInteractionEvent(m2, b2);
         MockJDA.assertButtonInteractionEvent(listener, e2, CommandUtil.embedError("Received Button Interaction with no ID!"));
 

@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

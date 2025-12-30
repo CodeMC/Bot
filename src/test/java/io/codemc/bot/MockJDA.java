@@ -1,15 +1,17 @@
 package io.codemc.bot;
 
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
-import dev.coly.jdat.JDAObjects;
-import dev.coly.util.Callback;
 import io.codemc.bot.commands.BotCommand;
 import io.codemc.bot.commands.TestCommandListener;
 import io.codemc.bot.config.ConfigHandler;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.components.MessageTopLevelComponent;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
@@ -21,17 +23,18 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.InteractionType;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.managers.SelfMemberManager;
+import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.*;
 import net.dv8tion.jda.api.requests.restaction.interactions.ModalCallbackAction;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageRequest;
+import net.dv8tion.jda.internal.JDAImpl;
 import org.junit.jupiter.api.Assertions;
+import org.mockito.Mockito;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -53,8 +56,8 @@ public class MockJDA {
     private static final Map<Long, String> latestMessages = new HashMap<>();
     private static final Map<Long, MessageEmbed[]> latestEmbeds = new HashMap<>();
 
-    public static final JDA JDA = JDAObjects.getJDA();
-    public static final Member SELF = mockMember("Bot");
+    public static final JDA JDA = mockJDA();
+    public static final SelfMember SELF = mockSelfMember();
     public static final Guild GUILD = mockGuild();
     public static Modal CURRENT_MODAL = null;
 
@@ -69,6 +72,24 @@ public class MockJDA {
     public static final Role REVIEWER = mockRole("Reviewer", 1233971297185431582L, 2);
     public static final Role AUTHOR = mockRole("Author", CONFIG.getLong("author_role"), 1);
     public static final List<Role> ROLES = List.of(ADMINISTRATOR, MAINTAINER, REVIEWER, AUTHOR);
+
+    public static JDA mockJDA() {
+        try {
+            JDA jda = mock(JDAImpl.class);
+            when(jda.getStatus()).thenAnswer(invocation -> net.dv8tion.jda.api.JDA.Status.CONNECTED);
+            when(jda.unloadUser(anyLong())).thenAnswer(invocation -> true);
+            when(jda.awaitReady()).thenAnswer(invocation -> jda);
+            when(jda.awaitStatus(any(JDA.Status.class))).thenAnswer(invocation -> jda);
+            when(jda.awaitStatus(any(JDA.Status.class), any(JDA.Status[].class))).thenAnswer(invocation -> jda);
+            when(jda.getSelfUser()).thenAnswer(invocation -> SELF);
+            when(jda.getInviteUrl(any(Permission[].class))).thenAnswer(invocation -> "http://fake.url");
+            when(jda.getInviteUrl(anyCollection())).thenAnswer(invocation -> "http://fake.url");
+
+            return jda;
+        } catch (InterruptedException e) {
+            throw new RuntimeException("This should not be reachable", e);
+        }
+    }
 
     public static String getMessage(long id) {
         return messages.get(id);
@@ -171,7 +192,50 @@ public class MockJDA {
 
     public static TextChannel mockChannel(String configName) {
         long id = CONFIG.getLong("channels", configName);
-        TextChannel channel = (TextChannel) JDAObjects.getMessageChannel(configName.replace('_', '-'), id, Callback.single());
+        TextChannel channel = mock(TextChannel.class, withSettings().extraInterfaces(GuildChannel.class, MessageChannel.class, MessageChannelUnion.class));
+        when(channel.getName()).thenAnswer(invocation -> configName);
+        when(channel.getIdLong()).thenAnswer(invocation -> id);
+        when(channel.getId()).thenAnswer(invocation -> String.valueOf(id));
+
+        when(channel.sendMessage(any(CharSequence.class)))
+                .thenAnswer(invocation ->
+                        mockReply(
+                                MessageCreateAction.class,
+                                mockMessage(invocation.getArgument(0), channel)
+                        )
+                );
+
+        when(channel.sendMessage(any(MessageCreateData.class)))
+                .thenAnswer(invocation ->
+                        mockReply(
+                                MessageCreateAction.class,
+                                mockMessage(
+                                        invocation.getArgument(0, MessageCreateData.class).getContent(),
+                                        invocation.getArgument(0, MessageCreateData.class).getEmbeds(),
+                                        channel
+                                )
+                        )
+                );
+
+        when(channel.sendMessageEmbeds(any(MessageEmbed.class), any(MessageEmbed[].class)))
+                .thenAnswer(invocation -> {
+                    List<MessageEmbed> embeds = invocation.getArguments().length == 1 ? new ArrayList<>() :
+                            Arrays.asList(invocation.getArgument(1));
+                    embeds.add(invocation.getArgument(0));
+
+                    return mockReply(
+                            MessageCreateAction.class,
+                            mockMessage(null, embeds, channel)
+                    );
+                });
+
+        when(channel.sendMessageEmbeds(anyList()))
+                .thenAnswer(invocation ->
+                        mockReply(
+                                MessageCreateAction.class,
+                                mockMessage(null, invocation.getArgument(0), channel)
+                        )
+                );
 
         when(channel.getGuild()).thenReturn(GUILD);
         when(channel.getJDA()).thenReturn(JDA);
@@ -226,11 +290,16 @@ public class MockJDA {
     }
 
     public static Message mockMessage(String content, MessageChannel channel, long id) {
-        Message message = JDAObjects.getMessage(content, channel);
+        Message message = mock(Message.class);
         messages.put(message.getIdLong(), content);
         latestMessages.put(channel.getIdLong(), content);
         latestEmbeds.remove(channel.getIdLong());
 
+        when(message.getContentRaw()).thenAnswer(invocation -> content);
+        when(message.getContentDisplay()).thenAnswer(invocation -> content);
+        when(message.getContentStripped()).thenAnswer(invocation -> content);
+        when(message.getChannel()).thenAnswer(invocation -> channel);
+        when(message.getEmbeds()).thenReturn(List.of());
         when(message.getContentRaw()).thenAnswer(inv -> messages.get(id));
         when(message.getJumpUrl()).thenReturn("<Jump URL>");
         when(message.getIdLong()).thenReturn(id);
@@ -275,12 +344,15 @@ public class MockJDA {
         return mockMessage(content, embeds, channel, RANDOM.nextLong(0, Long.MAX_VALUE));
     }
 
-    public static Message mockMessage(String content, List<MessageEmbed> embeds, MessageChannel channel, long id) {
+    public static Message mockMessage(String content, List<MessageEmbed> list, MessageChannel channel, long id) {
         Message message = mockMessage(content, channel, id);
-        MockJDA.embeds.put(message.getIdLong(), embeds.toArray(new MessageEmbed[0]));
-        latestEmbeds.put(channel.getIdLong(), embeds.toArray(new MessageEmbed[0]));
+        MockJDA.embeds.put(message.getIdLong(), list.toArray(new MessageEmbed[0]));
+        latestEmbeds.put(channel.getIdLong(), list.toArray(new MessageEmbed[0]));
 
-        when(message.getEmbeds()).thenAnswer(inv -> Arrays.asList(MockJDA.embeds.get(message.getIdLong())));
+        when(message.getEmbeds()).thenAnswer(inv -> {
+            MessageEmbed[] array = MockJDA.embeds.getOrDefault(id, new MessageEmbed[0]);
+            return Arrays.asList(array);
+        });
 
         return message;
     }
@@ -337,8 +409,27 @@ public class MockJDA {
         return guild;
     }
 
+    public static SelfMember mockSelfMember() {
+        SelfMember self = (SelfMember) mockMember("Bot");
+        SelfMemberManager manager = mock(SelfMemberManager.class);
+        when(manager.getMember()).thenReturn(self);
+        when(manager.getJDA()).thenReturn(JDA);
+        when(self.getManager()).thenReturn(manager);
+
+        return self;
+    }
+
     public static Member mockMember(String username) {
-        Member member = JDAObjects.getMember(username, "0000");
+        String discriminator = String.format("%04d", RANDOM.nextInt(0, 10000));
+        Member member = mock(Member.class, withSettings().extraInterfaces(SelfMember.class));
+        when(member.getEffectiveName()).thenAnswer(invocation -> username);
+        when(member.getNickname()).thenAnswer(invocation -> username);
+
+        User user = mock(User.class, withSettings().extraInterfaces(SelfUser.class));
+        when(user.getName()).thenAnswer(invocation -> username);
+        when(user.getDiscriminator()).thenAnswer(invocation -> discriminator);
+        when(user.getAsTag()).thenAnswer(invocation -> username + "#" + discriminator);
+        when(member.getUser()).thenAnswer(invocation -> user);
 
         long id = RANDOM.nextLong(0, Long.MAX_VALUE);
         members.put(id, member);
@@ -365,7 +456,7 @@ public class MockJDA {
         when(role.getName()).thenReturn(name);
         when(role.getIdLong()).thenReturn(id);
         when(role.getGuild()).thenReturn(GUILD);
-        when(role.getColorRaw()).thenReturn(0);
+        when(role.getColors()).thenReturn(RoleColors.DEFAULT);
         when(role.getPosition()).thenReturn(position);
         when(role.getPositionRaw()).thenReturn(0);
 
@@ -583,7 +674,7 @@ public class MockJDA {
             if (!options.containsKey(key)) return null;
 
             ModalMapping mapping = mock(ModalMapping.class);
-            when(mapping.getId()).thenReturn(key);
+            when(mapping.getCustomId()).thenReturn(key);
             when(mapping.getAsString()).thenReturn(options.get(key));
 
             return mapping;
@@ -619,9 +710,9 @@ public class MockJDA {
         when(event.replyEmbeds(anyList())).thenAnswer(invocation ->
             mockReply(mockMessage(null, invocation.getArgument(0), channel, id)));
         when(event.replyEmbeds(any(MessageEmbed.class), any(MessageEmbed[].class))).thenAnswer(invocation -> {
-            List<MessageEmbed> embeds = invocation.getArguments().length == 1 ? new ArrayList<>() : Arrays.asList(invocation.getArgument(1));
-            embeds.add(invocation.getArgument(0));
-            return mockReply(mockMessage(null, embeds, channel, id));
+            List<MessageEmbed> list = invocation.getArguments().length == 1 ? new ArrayList<>() : Arrays.asList(invocation.getArgument(1));
+            list.add(invocation.getArgument(0));
+            return mockReply(mockMessage(null, list, channel, id));
         });
 
         when(event.deferReply()).thenAnswer(inv -> mockReply(mockMessage(null, channel, id)));
@@ -734,12 +825,11 @@ public class MockJDA {
             return action;
         });
 
-        when(action.setActionRow(any(ItemComponent[].class))).thenAnswer(inv -> action);
-        when(action.setActionRow(anyCollection())).thenAnswer(inv -> action);
-
         if (action instanceof MessageEditAction edit) {
             when(edit.setReplace(anyBoolean())).thenReturn(edit);
         }
+
+        when(action.setComponents(any(MessageTopLevelComponent[].class))).thenAnswer(inv -> action);
 
         return action;
     }

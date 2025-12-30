@@ -22,6 +22,9 @@ import com.jagrosh.jdautilities.command.SlashCommand;
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.CommandUtil;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -31,10 +34,7 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 
 import java.util.Arrays;
 
@@ -97,13 +97,15 @@ public class CmdMsg extends BotCommand{
                 return;
             }
             
-            TextInput input = TextInput.create("message", "Message", TextInputStyle.PARAGRAPH)
+            TextInput input = TextInput.create("message", TextInputStyle.PARAGRAPH)
                 .setMaxLength(asEmbed ? TextInput.MAX_VALUE_LENGTH : Message.MAX_CONTENT_LENGTH)
                 .setRequired(true)
                 .build();
+
+            Label label = Label.of("Message", input);
             
             Modal modal = Modal.create("message:post:" + channel.getId() + ":" + asEmbed, "Send Message")
-                .addComponents(ActionRow.of(input))
+                .addComponents(label)
                 .build();
             
             event.replyModal(modal).queue();
@@ -152,13 +154,15 @@ public class CmdMsg extends BotCommand{
                 return;
             }
             
-            TextInput input = TextInput.create("message", "Message", TextInputStyle.PARAGRAPH)
+            TextInput input = TextInput.create("message", TextInputStyle.PARAGRAPH)
                 .setMaxLength(asEmbed ? 4000 : Message.MAX_CONTENT_LENGTH)
                 .setRequired(true)
                 .build();
+
+            Label label = Label.of("Message", input);
             
             Modal modal = Modal.create("message:edit:" + channel.getId() + ":" + asEmbed + ":" + messageId, "Send Message")
-                .addComponents(ActionRow.of(input))
+                .addComponents(label)
                 .build();
             
             event.replyModal(modal).queue();

@@ -110,7 +110,7 @@ public class TestApplicationHandler {
             MockCodeMCBot.INSTANCE, h1, GUILD, m1.getIdLong(), null, true
         );
         assertEmbeds(
-            List.of(CommandUtil.embedError("Request not found in Database.")), MockJDA.getEmbeds(h1.getIdLong()), true
+            List.of(CommandUtil.embedError("Request not found in Database and Message has no embeds to parse from.")), MockJDA.getEmbeds(h1.getIdLong()), true
         );
 
         InteractionHook h2 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
@@ -145,7 +145,25 @@ public class TestApplicationHandler {
             List.of(CommandUtil.embedError("Database Request is missing values.")), MockJDA.getEmbeds(h3.getIdLong()), true
         );
         DatabaseAPI.removeRequest(2);
+
+        InteractionHook h5 = MockJDA.mockInteractionHook(SELF, REQUEST_CHANNEL, InteractionType.MODAL_SUBMIT);
+        Message m5 = MockJDA.mockMessage("", List.of(
+                CommandUtil.requestEmbed(
+                        ";;?invalidLink",
+                        "''.invalidRepoLink",
+                        "User <@1234567890123456789>",
+                        "Description"
+                )
+        ), REQUEST_CHANNEL);
+
+        ApplicationHandler.handle(
+            MockCodeMCBot.INSTANCE, h5, GUILD, m5.getIdLong(), null, true
+        );
+        assertEmbeds(
+            List.of(CommandUtil.embedError("Request not found in Database and data could not be parsed from embed.")), MockJDA.getEmbeds(h5.getIdLong()), true
+        );
     }
+
 
     @Test
     @DisplayName("Test ApplicationHandler#fromMessage")

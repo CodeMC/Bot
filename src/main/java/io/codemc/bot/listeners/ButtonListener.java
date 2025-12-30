@@ -21,16 +21,16 @@ package io.codemc.bot.listeners;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.ApplicationHandler;
 import io.codemc.bot.utils.CommandUtil;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ public class ButtonListener extends ListenerAdapter{
             return;
         }
 
-        String id = event.getButton().getId();
+        String id = event.getButton().getCustomId();
         if (id == null) {
             CommandUtil.EmbedReply.from(event).error("Received Button Interaction with no ID!").send();
             logger.error("Received Button Interaction with no ID!");
@@ -109,15 +109,17 @@ public class ButtonListener extends ListenerAdapter{
                 CommandUtil.EmbedReply.from(event).error("You lack permissions to perform this action.").send();
                 return;
             }
-            
-            TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("(Leave empty for no reason)")
+
+            TextInput input = TextInput.create("reason", TextInputStyle.PARAGRAPH)
+                .setPlaceholder("The reason for denying this application. Leave blank for no reason.")
                 .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                 .setRequired(false)
                 .build();
+
+            Label reason = Label.of("Reason", input);
             
             Modal modal = Modal.create("deny_application:" + event.getMessageId(), "Deny Application")
-                .addComponents(ActionRow.of(reason))
+                .addComponents(reason)
                 .build();
             
             event.replyModal(modal).queue();

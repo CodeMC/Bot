@@ -168,7 +168,7 @@ public class CodeMCBot{
             logger.info("GitHub API Token set");
     }
 
-    private void login(CommandClientBuilder clientBuilder, String token) throws LoginException{
+    private void login(CommandClientBuilder clientBuilder, String token) {
         logger.info("Adding commands...");
         clientBuilder.addSlashCommands(
             new CmdApplication(this),

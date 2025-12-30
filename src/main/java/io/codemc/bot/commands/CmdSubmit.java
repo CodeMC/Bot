@@ -20,14 +20,14 @@ package io.codemc.bot.commands;
 
 import com.jagrosh.jdautilities.command.SlashCommandEvent;
 import io.codemc.bot.CodeMCBot;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 
 public class CmdSubmit extends BotCommand{
     
@@ -45,31 +45,33 @@ public class CmdSubmit extends BotCommand{
     
     @Override
     public void withModalReply(SlashCommandEvent event){
-        TextInput user = TextInput.create("user", "GitHub Username", TextInputStyle.SHORT)
+        TextInput user = TextInput.create("user", TextInputStyle.SHORT)
             .setPlaceholder("CodeMC")
             .setRequired(true)
             .build();
-        TextInput repo = TextInput.create("repo", "Repository Name", TextInputStyle.SHORT)
+        Label userLabel = Label.of("GitHub Username", user);
+
+        TextInput repo = TextInput.create("repo", TextInputStyle.SHORT)
             .setPlaceholder("Bot")
             .setRequired(true)
             .build();
-        TextInput repoLink = TextInput.create("repoLink", "Repository Link (Leave blank if on GitHub)", TextInputStyle.SHORT)
+        Label repoLabel = Label.of("Repository Name", repo);
+
+        TextInput repoLink = TextInput.create("repoLink",  TextInputStyle.SHORT)
             .setPlaceholder("https://git.example.com/CodeMC/Bot")
             .setRequired(false)
             .build();
-        TextInput description = TextInput.create("description", "Description", TextInputStyle.PARAGRAPH)
+        Label repoLinkLabel = Label.of("Repository Link (Leave blank if on GitHub)", repoLink);
+
+        TextInput description = TextInput.create("description", TextInputStyle.PARAGRAPH)
             .setPlaceholder("Discord Bot for the CodeMC Server.")
             .setRequired(true)
             .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
             .build();
+        Label descriptionLabel = Label.of("Project Description", description);
         
         Modal modal = Modal.create("submit", "Join Request")
-            .addComponents(
-                ActionRow.of(user),
-                ActionRow.of(repo),
-                ActionRow.of(repoLink),
-                ActionRow.of(description)
-            )
+            .addComponents(userLabel, repoLabel, repoLinkLabel, descriptionLabel)
             .build();
         
         event.replyModal(modal).queue();

@@ -23,6 +23,8 @@ import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.ApplicationHandler;
 import io.codemc.bot.utils.CommandUtil;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -31,7 +33,6 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.jetbrains.annotations.NotNull;
@@ -104,9 +105,11 @@ public class ModalListener extends ListenerAdapter{
                 MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description);
                 
                 requestChannel.sendMessageEmbeds(embed)
-                    .setActionRow(
-                        Button.success("application:accept:" + user + ":" + repo, "Accept"),
-                        Button.danger("application:deny:" + user + ":" + repo, "Deny")
+                    .setComponents(
+                        ActionRow.of(
+                                Button.success("application:accept:" + user + ":" + repo, "Accept"),
+                                Button.danger("application:deny:" + user + ":" + repo, "Deny")
+                        )
                     ).queue(
                         message -> {
                             CommandUtil.EmbedReply.from(hook).success(
