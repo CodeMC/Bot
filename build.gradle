@@ -19,7 +19,7 @@
 plugins {
     id "java"
     id "application"
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "com.gradleup.shadow" version "9.3.0"
     id "jacoco"
 }
 
@@ -100,7 +100,7 @@ shadowJar {
 }
 
 application {
-    mainClassName = 'io.codemc.bot.CodeMCBot'
+    mainClass = 'io.codemc.bot.CodeMCBot'
 }
 
 java {
