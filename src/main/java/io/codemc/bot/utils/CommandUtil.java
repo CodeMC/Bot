@@ -58,12 +58,17 @@ public class CommandUtil{
         return EmbedReply.empty().success(lines).build();
     }
 
+    public static final String USER_ORGANISATION = "User/Organisation:";
+    public static final String REPOSITORY = "Repository:";
+    public static final String SUBMITTED_BY = "Submitted by:";
+    public static final String DESCRIPTION = "Description";
+
     public static MessageEmbed requestEmbed(String userLink, String repoLink, String submitter, String description) {
         return getEmbed()
-            .addField("User/Organisation:", userLink, true)
-            .addField("Repository:", repoLink, true)
-            .addField("Submitted by:", submitter, true)
-            .addField("Description", description, false)
+            .addField(USER_ORGANISATION, userLink, true)
+            .addField(REPOSITORY, repoLink, true)
+            .addField(SUBMITTED_BY, submitter, true)
+            .addField(DESCRIPTION, description, false)
             .setTimestamp(Instant.now())
             .build();
     }

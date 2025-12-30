@@ -1,6 +1,7 @@
 package io.codemc.bot.utils;
 
 import io.codemc.api.database.DatabaseAPI;
+import io.codemc.api.database.Request;
 import io.codemc.api.jenkins.JenkinsAPI;
 import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.MockCodeMCBot;
@@ -10,6 +11,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.InteractionType;
+import net.dv8tion.jda.api.utils.MarkdownUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -143,6 +145,30 @@ public class TestApplicationHandler {
             List.of(CommandUtil.embedError("Database Request is missing values.")), MockJDA.getEmbeds(h3.getIdLong()), true
         );
         DatabaseAPI.removeRequest(2);
+    }
+
+    @Test
+    @DisplayName("Test ApplicationHandler#fromMessage")
+    public void testFromMessage() {
+        long messageId = 1234567890123456789L;
+        long userId = 555555555555555555L;
+        String username = "TestApplicationHandlerFromMessage";
+        String mention = "<@" + userId + ">";
+        String repo = "Job";
+        String description = "This is a test description.";
+
+        String userLink = MarkdownUtil.maskedLink(username, "https://github.com/" + username);
+        String repoLink = MarkdownUtil.maskedLink(repo, "https://github.com/" + username + "/" + repo);
+        String submitter = String.format("`%s` (%s)", username, mention);
+
+        MessageEmbed embed = CommandUtil.requestEmbed(userLink, repoLink, submitter, description);
+
+        Request request = ApplicationHandler.fromEmbed(messageId, embed);
+        assertNotNull(request);
+        assertEquals(messageId, request.getMessageId());
+        assertEquals(userId, request.getUserId());
+        assertEquals(username, request.getGithubName());
+        assertEquals(repo, request.getRepoName());
     }
 
 }

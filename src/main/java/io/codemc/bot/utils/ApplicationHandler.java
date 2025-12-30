@@ -54,8 +54,19 @@ public class ApplicationHandler{
         requestChannel.retrieveMessageById(messageId).queue(message -> {
             Request req = DatabaseAPI.getRequest(messageId);
             if(req == null){
-                CommandUtil.EmbedReply.from(hook).error("Request not found in Database.").send();
-                return;
+                // try to parse from message
+                if (message.getEmbeds().isEmpty()) {
+                    CommandUtil.EmbedReply.from(hook).error("Request not found in Database and Message has no embeds to parse from.").send();
+                    return;
+                }
+
+                MessageEmbed embed = message.getEmbeds().get(0);
+                req = fromEmbed(message.getIdLong(), embed);
+
+                if (req == null) {
+                    CommandUtil.EmbedReply.from(hook).error("Request not found in Database and data could not be parsed from embed.").send();
+                    return;
+                }
             }
 
             hook.editOriginal(
@@ -282,5 +293,92 @@ public class ApplicationHandler{
             .addContent("<@" + userId + ">")
             .setEmbeds(embed)
             .build();
+    }
+
+    private static final String GITHUB_PREFIX = "https://github.com/";
+
+    @VisibleForTesting
+    static Request fromEmbed(long messageId, MessageEmbed embed) {
+        if(embed == null) return null;
+
+        String userLink = null;
+        String repoLink = null;
+        Long userId = null;
+
+        for(MessageEmbed.Field field : embed.getFields()) {
+            switch(field.getName()) {
+                case CommandUtil.USER_ORGANISATION -> userLink = field.getValue();
+                case CommandUtil.REPOSITORY -> repoLink = field.getValue();
+                case CommandUtil.SUBMITTED_BY -> {
+                    String submitter = field.getValue();
+                    String[] parts = submitter.split("\\s+");
+                    if(parts.length == 2) {
+                        String mention = parts[1];
+                        String idStr;
+                        if(mention.startsWith("(<@") && mention.endsWith(">)")) {
+                            idStr = mention.substring(3, mention.length() - 2);
+                        } else if (mention.startsWith("<@") && mention.endsWith(">")) {
+                            idStr = mention.substring(2, mention.length() - 1);
+                        } else {
+                            LOGGER.warn("Unexpected mention format in submitter field: {}", submitter);
+                            break;
+                        }
+
+                        try {
+                            userId = Long.parseLong(idStr);
+                        } catch (NumberFormatException e) {
+                            LOGGER.warn("Failed to parse user ID from mention: {}", mention, e);
+                        }
+                    }
+                }
+            }
+        }
+
+        if(userLink == null || repoLink == null || userId == null) {
+            LOGGER.warn("Embed is missing required fields: userLink={}, repoLink={}, userId={}", userLink, repoLink, userId);
+            return null;
+        }
+
+        String githubName = null;
+        String repoName = null;
+        try {
+            if(userLink.startsWith("[") && userLink.contains("](") && userLink.endsWith(")")) {
+                int start = userLink.indexOf("](") + 2;
+                int end = userLink.length() - 1;
+                String url = userLink.substring(start, end);
+                if (url.startsWith(GITHUB_PREFIX)) {
+                    githubName = url.substring(GITHUB_PREFIX.length());
+                } else {
+                    LOGGER.warn("User link does not start with expected prefix: {}", userLink);
+                }
+            } else {
+                LOGGER.warn("User link is not in expected markdown format: {}", userLink);
+            }
+
+            if(repoLink.startsWith("[") && repoLink.contains("](") && repoLink.endsWith(")")) {
+                int start = repoLink.indexOf("](") + 2;
+                int end = repoLink.length() - 1;
+                String url = repoLink.substring(start, end);
+                if (url.startsWith(GITHUB_PREFIX) && url.contains("/")) {
+                    String path = url.substring(GITHUB_PREFIX.length());
+                    int slashIndex = path.indexOf("/");
+                    githubName = path.substring(0, slashIndex);
+                    repoName = path.substring(slashIndex + 1);
+                } else {
+                    LOGGER.warn("Repository link does not start with expected prefix or is malformed: {}", repoLink);
+                }
+            } else {
+                LOGGER.warn("Repository link is not in expected markdown format: {}", repoLink);
+            }
+        } catch(Exception e) {
+            LOGGER.warn("Failed to parse GitHub name or repository name from links: userLink={}, repoLink={}", userLink, repoLink, e);
+        }
+
+        if(githubName == null || repoName == null) {
+            LOGGER.warn("Failed to extract githubName or repoName: githubName={}, repoName={}", githubName, repoName);
+            return null;
+        }
+
+        return new Request(messageId, userId, githubName, repoName);
     }
 }
