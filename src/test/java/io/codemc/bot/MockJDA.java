@@ -794,6 +794,13 @@ public class MockJDA {
             return action;
         });
 
+        if (action instanceof WebhookMessageCreateAction<?> create) {
+            when(create.setEphemeral(anyBoolean())).thenAnswer(invocation -> {
+                when(message.isEphemeral()).thenReturn(true);
+                return action;
+            });
+        }
+
         return action;
     }
 

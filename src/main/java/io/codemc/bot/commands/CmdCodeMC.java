@@ -28,6 +28,7 @@ import io.codemc.api.nexus.NexusAPI;
 import io.codemc.bot.CodeMCBot;
 import io.codemc.bot.utils.APIUtil;
 import io.codemc.bot.utils.CommandUtil;
+import kotlinx.serialization.json.JsonArray;
 import kotlinx.serialization.json.JsonObject;
 import kotlinx.serialization.json.JsonPrimitive;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -42,11 +43,15 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 
+import net.dv8tion.jda.api.utils.MarkdownUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,7 +75,8 @@ public class CmdCodeMC extends BotCommand {
                 new Unlink(bot),
                 new ChangePassword(bot),
                 new CreateUser(bot),
-                new DeleteUser(bot)
+                new DeleteUser(bot),
+                new MyStatus(bot)
         };
     }
 
@@ -362,10 +368,100 @@ public class CmdCodeMC extends BotCommand {
 
                 if (!noJenkins)
                     success &= JenkinsAPI.changeJenkinsPassword(username, password);
+            } else {
+                success &= NexusAPI.validatePrivileges(username);
             }
 
             count.incrementAndGet();
             return success;
+        }
+    }
+
+    @VisibleForTesting
+    static class MyStatus extends BotCommand {
+
+        public MyStatus(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "my-status";
+            this.help = "Checks the status of your CodeMC Jenkins and Nexus accounts.";
+            this.aliases = new String[]{"mystatus"};
+
+            List<Long> roles = new ArrayList<>();
+            roles.add(bot.getConfigHandler().getLong("author_role"));
+            roles.addAll(bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc"));
+
+            this.allowedRoles = roles;
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {
+        }
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            String username = DatabaseAPI.getAllUsers().stream()
+                    .filter(user -> user.getDiscord() == member.getIdLong())
+                    .map(User::getUsername)
+                    .findFirst()
+                    .orElse(null);
+
+            if (username == null) {
+                CommandUtil.EmbedReply.from(hook).error("You are not linked to any Jenkins/Nexus accounts!").send();
+                return;
+            }
+
+            MessageEmbed embed = build(username);
+            hook.sendMessageEmbeds(embed)
+                    .setEphemeral(true)
+                    .queue();
+        }
+
+        @VisibleForTesting
+        @NotNull
+        MessageEmbed build(String username) {
+            int totalUsers = JenkinsAPI.getAllJenkinsUsers().size();
+            int totalRepositories = NexusAPI.getRepositories().size();
+
+            String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url");
+            String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
+
+            boolean jenkinsExists = JenkinsAPI.existsUser(username);
+
+            JsonObject nexusInfo = NexusAPI.getNexusRepository(username);
+            boolean nexusExists = nexusInfo != null && !nexusInfo.isEmpty();
+
+            EmbedBuilder embed = CommandUtil.getEmbed()
+                    .setTitle("CodeMC Account Status for " + username)
+                    .setDescription("Total Jenkins Users: " + totalUsers + "\nTotal Nexus Repositories: " + totalRepositories)
+                    .setTimestamp(Instant.now());
+
+            if (jenkinsExists) embed.addField("Jenkins Account", jenkinsUrl + "/job/" + username, true);
+            else embed.addField("Jenkins Account", MarkdownUtil.underline("Does Not Exist"), true);
+
+            if (nexusExists) {
+                embed.addField("Nexus Repository", nexusUrl + "/#browse/browse:" + username.toLowerCase(), true);
+
+                JsonObject user = NexusAPI.getNexusUser(username.toLowerCase());
+                String userId = ((JsonPrimitive) user.get("userId")).getContent();
+                String roles = ((JsonArray) user.get("roles"))
+                        .stream()
+                        .map(role -> ((JsonPrimitive) role).getContent())
+                        .reduce((a, b) -> "- " + a + "\n- " + b)
+                        .orElse("None");
+                embed.addField("Nexus User ID", userId, true);
+                embed.addField("Nexus Roles", roles, false);
+
+                JsonObject role = NexusAPI.getNexusRole(username.toLowerCase());
+                String privileges = ((JsonArray) role.get("privileges"))
+                        .stream()
+                        .map(priv -> ((JsonPrimitive) priv).getContent())
+                        .reduce((a, b) -> "- " + a + "\n- " + b)
+                        .orElse("None");
+                embed.addField("Nexus Privileges", privileges, false);
+            } else embed.addField("Nexus Repository", MarkdownUtil.underline("Does Not Exist"), true);
+
+            return embed.build();
         }
     }
 
@@ -465,11 +561,6 @@ public class CmdCodeMC extends BotCommand {
                     CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
                 else
                     CommandUtil.EmbedReply.from(hook).error("The user is not linked to the specified Jenkins/Nexus account!").send();
-                return;
-            }
-
-            if (DatabaseAPI.getUser(username) == null) {
-                CommandUtil.EmbedReply.from(hook).error("The user is not linked to any Jenkins/Nexus account!").send();
                 return;
             }
 

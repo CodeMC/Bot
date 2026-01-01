@@ -429,4 +429,37 @@ public class TestCmdCodeMC {
         DatabaseAPI.removeUser("TestDelUser");
     }
 
+    @Test
+    @DisplayName("Test /codemc my-status")
+    public void testMyStatus() {
+        MyStatus status = (MyStatus) command.getChildren()[9];
+        String username = "TestStatus";
+
+        assertEquals("my-status", status.getName());
+        assertFalse(status.getHelp().isEmpty());
+        assertFalse(status.allowedRoles.isEmpty());
+        assertNotEquals(0, status.getAliases().length);
+
+        SlashCommandEvent event = MockJDA.mockSlashCommandEvent(MockJDA.REQUEST_CHANNEL, status, Map.of());
+        TestCommandListener listener = new TestCommandListener(status);
+
+        JenkinsAPI.createJenkinsUser(username, "1234");
+        NexusAPI.createNexus(username, "1234");
+        DatabaseAPI.addUser(username, event.getMember().getIdLong());
+
+        MockJDA.assertSlashCommandEvent(event, listener, status.build(username));
+
+        assertTrue(JenkinsAPI.deleteUser(username));
+
+        MockJDA.assertSlashCommandEvent(event, listener, status.build(username));
+
+        assertTrue(NexusAPI.deleteNexus(username));
+
+        MockJDA.assertSlashCommandEvent(event, listener, status.build(username));
+
+        assertEquals(1, DatabaseAPI.removeUser(username));
+
+        MockJDA.assertSlashCommandEvent(event, listener, CommandUtil.embedError("You are not linked to any Jenkins/Nexus accounts!"));
+    }
+
 }
