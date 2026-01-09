@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.5.23'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.5.24'
     implementation(group: 'net.dv8tion', name: 'JDA', version:'6.2.1'){
         exclude(module: 'opus-java')
     }
@@ -54,10 +54,10 @@ dependencies {
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.61.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.61.0'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '6.0.1'
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-launcher', version: '6.0.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '6.0.2'
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-launcher', version: '6.0.2'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.21.0'
-    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '6.0.1'
+    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '6.0.2'
 }
 
 tasks {
