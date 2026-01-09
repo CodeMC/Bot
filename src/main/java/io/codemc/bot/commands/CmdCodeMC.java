@@ -48,13 +48,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class CmdCodeMC extends BotCommand {
 
@@ -76,7 +82,8 @@ public class CmdCodeMC extends BotCommand {
                 new ChangePassword(bot),
                 new CreateUser(bot),
                 new DeleteUser(bot),
-                new MyStatus(bot)
+                new MyStatus(bot),
+                new Help(bot)
         };
     }
 
@@ -420,48 +427,194 @@ public class CmdCodeMC extends BotCommand {
         @VisibleForTesting
         @NotNull
         MessageEmbed build(String username) {
-            int totalUsers = JenkinsAPI.getAllJenkinsUsers().size();
-            int totalRepositories = NexusAPI.getRepositories().size();
+            try {
+                int totalUsers = JenkinsAPI.getAllJenkinsUsers().size();
+                int totalRepositories = NexusAPI.getRepositories().size();
 
-            String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url");
-            String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
+                String jenkinsUrl = bot.getConfigHandler().getString("jenkins", "url");
+                String nexusUrl = bot.getConfigHandler().getString("nexus", "url");
 
-            boolean jenkinsExists = JenkinsAPI.existsUser(username);
 
-            JsonObject nexusInfo = NexusAPI.getNexusRepository(username);
-            boolean nexusExists = nexusInfo != null && !nexusInfo.isEmpty();
+                EmbedBuilder embed = CommandUtil.getEmbed()
+                        .setTitle("CodeMC Account Status for " + username)
+                        .setDescription("Total Jenkins Users: " + totalUsers + "\nTotal Nexus Repositories: " + totalRepositories)
+                        .setTimestamp(Instant.now());
+
+                boolean jenkinsExists = JenkinsAPI.existsUser(username);
+                if (jenkinsExists) {
+                    String config = JenkinsAPI.getJenkinsUser(username);
+                    embed.addField("Jenkins Account", jenkinsUrl + "/job/" + username, true);
+
+                    if (config.contains("com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty")) {
+                        embed.addField("Jenkins Permissions", "Contains Authorization Matrix", true);
+                    } else {
+                        embed.addField("Jenkins Permissions", MarkdownUtil.underline("Missing Authorization Matrix"), true);
+                    }
+
+                    if (config.contains("<id>nexus-repository</id>")) {
+                        embed.addField("Jenkins Nexus Credentials", "Nexus Repository Credentials Added", true);
+                    } else {
+                        embed.addField("Jenkins Nexus Credentials", MarkdownUtil.underline("Nexus Repository Not Linked"), true);
+                    }
+                } else {
+                    embed.addField("Jenkins Account", MarkdownUtil.underline("Does Not Exist"), true);
+                }
+
+                JsonObject nexusInfo = NexusAPI.getNexusRepository(username);
+                boolean nexusExists = nexusInfo != null && !nexusInfo.isEmpty();
+
+                if (nexusExists) {
+                    embed.addField("Nexus Repository", nexusUrl + "/#browse/browse:" + username.toLowerCase(), true);
+
+                    JsonObject user = NexusAPI.getNexusUser(username.toLowerCase());
+                    String userId = ((JsonPrimitive) user.get("userId")).getContent();
+                    String roles = ((JsonArray) user.get("roles"))
+                            .stream()
+                            .map(role -> ((JsonPrimitive) role).getContent())
+                            .collect(Collectors.joining("\n- ", "- ", ""));
+
+                    embed.addField("Nexus User ID", userId, true);
+                    embed.addField("Nexus Roles", roles, false);
+
+                    JsonObject role = NexusAPI.getNexusRole(username.toLowerCase());
+                    String privileges = ((JsonArray) role.get("privileges"))
+                            .stream()
+                            .map(priv -> ((JsonPrimitive) priv).getContent())
+                            .collect(Collectors.joining("\n- ", "- ", ""));
+
+                    embed.addField("Nexus Privileges", privileges, false);
+                } else embed.addField("Nexus Repository", MarkdownUtil.underline("Does Not Exist"), true);
+
+                return embed.build();
+            } catch (Exception e) {
+                LOGGER.error("Failed to build MyStatus embed for user '{}'", username, e);
+                return CommandUtil.getEmbed()
+                        .setTitle("CodeMC Account Status for " + username)
+                        .setDescription("An error occurred while fetching your account status.")
+                        .setTimestamp(Instant.now())
+                        .build();
+            }
+        }
+    }
+
+    @VisibleForTesting
+    static class Help extends BotCommand {
+
+        public Help(CodeMCBot bot) {
+            super(bot);
+
+            this.name = "help";
+            this.help = "Displays help information for CodeMC commands.";
+        }
+
+        @Override
+        public void withModalReply(SlashCommandEvent event) {
+        }
+
+        @Override
+        public void withHookReply(InteractionHook hook, SlashCommandEvent event, Guild guild, Member member) {
+            List<Role> roles = member.getRoles();
+            boolean isAuthor = roles.stream()
+                    .anyMatch(role -> role.getIdLong() == bot.getConfigHandler().getLong("author_role"));
+
+            List<Long> reviewerRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "application");
+            boolean isReviewer = roles.stream()
+                    .anyMatch(role -> reviewerRoles.contains(role.getIdLong()));
+
+            List<Long> adminRoles = bot.getConfigHandler().getLongList("allowed_roles", "commands", "codemc");
+            boolean isAdmin = roles.stream()
+                    .anyMatch(role -> adminRoles.contains(role.getIdLong()));
 
             EmbedBuilder embed = CommandUtil.getEmbed()
-                    .setTitle("CodeMC Account Status for " + username)
-                    .setDescription("Total Jenkins Users: " + totalUsers + "\nTotal Nexus Repositories: " + totalRepositories)
-                    .setTimestamp(Instant.now());
+                    .setTitle("CodeMC Command Help")
+                    .setDescription("Here is a list of available commands:");
 
-            if (jenkinsExists) embed.addField("Jenkins Account", jenkinsUrl + "/job/" + username, true);
-            else embed.addField("Jenkins Account", MarkdownUtil.underline("Does Not Exist"), true);
+            userHelp(embed);
 
-            if (nexusExists) {
-                embed.addField("Nexus Repository", nexusUrl + "/#browse/browse:" + username.toLowerCase(), true);
+            if (isReviewer) {
+                reviewerHelp(embed);
+            }
 
-                JsonObject user = NexusAPI.getNexusUser(username.toLowerCase());
-                String userId = ((JsonPrimitive) user.get("userId")).getContent();
-                String roles = ((JsonArray) user.get("roles"))
-                        .stream()
-                        .map(role -> ((JsonPrimitive) role).getContent())
-                        .reduce((a, b) -> "- " + a + "\n- " + b)
-                        .orElse("None");
-                embed.addField("Nexus User ID", userId, true);
-                embed.addField("Nexus Roles", roles, false);
+            if (isAuthor) {
+                authorHelp(embed);
+            }
 
-                JsonObject role = NexusAPI.getNexusRole(username.toLowerCase());
-                String privileges = ((JsonArray) role.get("privileges"))
-                        .stream()
-                        .map(priv -> ((JsonPrimitive) priv).getContent())
-                        .reduce((a, b) -> "- " + a + "\n- " + b)
-                        .orElse("None");
-                embed.addField("Nexus Privileges", privileges, false);
-            } else embed.addField("Nexus Repository", MarkdownUtil.underline("Does Not Exist"), true);
+            if (isAdmin) {
+                adminHelp(embed);
+            }
 
-            return embed.build();
+            embed.setTimestamp(Instant.now());
+
+            hook.sendMessageEmbeds(embed.build())
+                    .setEphemeral(true)
+                    .queue();
+        }
+
+        @VisibleForTesting
+        void userHelp(EmbedBuilder builder) {
+            Map<String, String> commands = Map.of(
+                    "/codemc help", "Displays this help message.",
+                    "/codemc jenkins", "Fetch information about a Jenkins Author.",
+                    "/codemc nexus", "Fetch information about a Nexus Repository."
+            );
+
+            for (Map.Entry<String, String> entry : commands.entrySet()) {
+                builder.addField(entry.getKey(), entry.getValue(), false);
+            }
+
+            builder.setFooter("User View");
+        }
+
+        @VisibleForTesting
+        void authorHelp(EmbedBuilder builder) {
+            builder.addBlankField(false);
+
+            Map<String, String> commands = Map.of(
+                    "/codemc my-status", "Check the status of your CodeMC Jenkins and Nexus accounts. This will usually report any issues with your accounts, and will help administrators with diagnosing issues.",
+                    "/codemc change-password", "Regenerates your Nexus Credentials. Useful if you suspect they have been compromised, or if they are not working."
+            );
+
+            for (Map.Entry<String, String> entry : commands.entrySet()) {
+                builder.addField(entry.getKey(), entry.getValue(), false);
+            }
+
+            builder.setFooter("Author View");
+        }
+
+        @VisibleForTesting
+        void reviewerHelp(EmbedBuilder builder) {
+            builder.addBlankField(false);
+
+            Map<String, String> commands = Map.of(
+                    "/application accept", "Accepts a user's application for Author status.",
+                    "/application deny", "Denies a user's application for Author status."
+            );
+
+            for (Map.Entry<String, String> entry : commands.entrySet()) {
+                builder.addField(entry.getKey(), entry.getValue(), false);
+            }
+
+            builder.setFooter("Reviewer View");
+        }
+
+        @VisibleForTesting
+        void adminHelp(EmbedBuilder builder) {
+            builder.addBlankField(false);
+
+            Map<String, String> commands = Map.of(
+                    "/codemc validate", "Performs a validation check on all or a specific user's existing jenkins credentials. Useful for regenerating credentials for a user.",
+                    "/codemc remove", "Removes a user from the CodeMC Services, and revokes their Author role.",
+                    "/codemc link", "Links a Discord User to a Jenkins/Nexus User. If it currently exists, it will be overridden.",
+                    "/codemc unlink", "Unlinks a discord user from their Jenkins/Nexus account.",
+                    "/codemc createuser", "Creates a new user in the Jenkins/Nexus services. Useful if user configuration is corrupted and recreation is necesssary. You can specify a user to link it to.",
+                    "/codemc deluser", "Deletes a user in the Jenkins/Nexus services. Useful if user configuration is corrupted and recreation is necesssary. Does not affect discord roles."
+            );
+
+            for (Map.Entry<String, String> entry : commands.entrySet()) {
+                builder.addField(entry.getKey(), entry.getValue(), false);
+            }
+
+            builder.setFooter("Administrator View");
         }
     }
 
