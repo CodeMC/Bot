@@ -19,7 +19,7 @@
 plugins {
     id "java"
     id "application"
-    id "com.gradleup.shadow" version "9.4.1"
+    id "com.gradleup.shadow" version "9.6.1"
     id "jacoco"
 }
 
@@ -39,8 +39,8 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.5.32'
-    implementation(group: 'net.dv8tion', name: 'JDA', version:'6.4.1'){
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.6.0'
+    implementation(group: 'net.dv8tion', name: 'JDA', version:'6.5.0'){
         exclude(module: 'opus-java')
     }
     implementation group: 'pw.chew', name: 'jda-chewtils-commons', version: '2.2.1'
@@ -48,16 +48,16 @@ dependencies {
     implementation group: 'org.spongepowered', name: 'configurate-gson', version: '4.2.0'
 
     implementation group: 'io.codemc.api', name: 'codemc-api', version: '1.2.3'
-    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.10.2'
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: '1.11.0'
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: '1.11.0'
-    implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.8'
+    implementation group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '3.5.9'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-core', version: '0.61.0'
     implementation group: 'org.jetbrains.exposed', name: 'exposed-jdbc', version: '0.61.0'
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '6.0.3'
-    testImplementation group: 'org.junit.platform', name: 'junit-platform-launcher', version: '6.0.3'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '6.1.2'
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-launcher', version: '6.1.2'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.23.0'
-    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '6.0.3'
+    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '6.1.2'
 }
 
 tasks {
